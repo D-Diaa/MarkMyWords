@@ -10,17 +10,11 @@ git submodule update
 
 export CUDA
 
-conda create -n mmw_env python=3.9 cmake ninja openssl
-conda activate mmw_env
+conda install python=3.9 cmake ninja openssl
 
 pip install --upgrade pip
-pip install torch torchvision torchaudio xformers || exit 1
 pip install --upgrade setuptools
 
-echo "=> Installing cpp-hash..."
-cd submodules/cpp-hash || exit 1
-python setup.py install || exit 1
-cd ../..
 
 echo "=> Installing vllm..."
 pip install submodules/vllm || exit 1
@@ -34,7 +28,14 @@ pip install lingua-language-detector tiktoken transformers scikit-learn nltk pyi
 echo "=> Installing APPS..."
 pip install -e submodules/apps || exit 1
 
+echo "=> Installing cpp-hash..."
+cd submodules/cpp-hash || exit 1
+python setup.py install || exit 1
+
+pip install torch torchvision torchaudio xformers || exit 1
+
 echo "=> Installing watermark-benchmark..."
+cd ../..
 python setup.py install || exit 1
 
 pip install --upgrade openai httpcore
