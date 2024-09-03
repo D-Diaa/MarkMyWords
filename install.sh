@@ -29,7 +29,7 @@ pip install lingua-language-detector tiktoken transformers scikit-learn nltk pyi
 #pip install starlette==0.27.0
 
 echo "=> Installing APPS..."
-pip install -e apps/ || exit 1
+pip install -e submodules/apps || exit 1
 
 echo "=> Installing watermark-benchmark..."
 python setup.py install || exit 1
