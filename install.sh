@@ -8,7 +8,10 @@ mv selected/ run/static_data/
 git submodule init
 git submodule update
 
-export CUDA 
+export CUDA
+
+Conda create -n mmw_env python=3.9 cmake ninja openssl
+Conda activate mmw_env
 
 pip install --upgrade pip
 pip install torch torchvision torchaudio xformers || exit 1
