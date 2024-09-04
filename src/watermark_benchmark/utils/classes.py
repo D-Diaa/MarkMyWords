@@ -502,6 +502,7 @@ class ConfigSpec:
     paraphrase: bool = False
     dipper_processes: int = 1
     openai_processes: int = 1
+    custom_processes: int = 1  # New field for custom model processes
     openai_key: Optional[str] = None
     threads: int = 32
     misspellings: str = "static_data/misspellings.json"
@@ -534,6 +535,8 @@ class ConfigSpec:
     logprobs: bool = False
 
     openai_parallelism: Optional[int] = 32
+
+    custom_model_path: Optional[str] = None  # New field for custom model path
 
     code_config: ConfigCode = ConfigCode()
 
