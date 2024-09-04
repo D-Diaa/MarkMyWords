@@ -1,8 +1,8 @@
-import math
 from abc import ABC, abstractmethod
 from typing import Optional, Tuple
 
 import hash_cpp
+import math
 import numpy as np
 import torch
 from transformers import PreTrainedTokenizerBase
@@ -39,10 +39,10 @@ class Verifier(ABC):
     """
 
     def __init__(
-        self,
-        rng: Optional[BaseRandomness] = None,
-        pvalue: Optional[float] = None,
-        tokenizer: Optional[PreTrainedTokenizerBase] = None,
+            self,
+            rng: Optional[BaseRandomness] = None,
+            pvalue: Optional[float] = None,
+            tokenizer: Optional[PreTrainedTokenizerBase] = None,
     ):
         """
         Initializes the Verifier object.
@@ -52,7 +52,7 @@ class Verifier(ABC):
         self.tokenizer = tokenizer
 
     def verify(
-        self, tokens: torch.Tensor, index: int = 0, **kwargs
+            self, tokens: torch.Tensor, index: int = 0, **kwargs
     ) -> VerifierOutput:
         """
         Verifies if a given sequence of tokens contains a watermark.
@@ -98,13 +98,13 @@ class EmpiricalVerifier(Verifier):
 
     @abstractmethod
     def __init__(
-        self,
-        rng: Randomness,
-        pvalue: float,
-        tokenizer: PreTrainedTokenizerBase,
-        method: str,
-        gamma: float,
-        log: bool,
+            self,
+            rng: Randomness,
+            pvalue: float,
+            tokenizer: PreTrainedTokenizerBase,
+            method: str,
+            gamma: float,
+            log: bool,
     ):
         super().__init__(rng, pvalue, tokenizer)
         self.method = method
@@ -121,7 +121,7 @@ class EmpiricalVerifier(Verifier):
 
     @abstractmethod
     def random_score_matrix(
-        self, tokens, random_shape, shared_randomness, index=0, meta=None
+            self, tokens, random_shape, shared_randomness, index=0, meta=None
     ):
         pass
 
@@ -157,14 +157,14 @@ class EmpiricalVerifier(Verifier):
                 torch.vstack(
                     (
                         (
-                            (
-                                torch.arange(KL)
-                                .reshape(-1, 1)
-                                .repeat(1, SL)
-                                .flatten()
-                                + torch.arange(SL).repeat(KL)
-                            )
-                            % KL
+                                (
+                                        torch.arange(KL)
+                                        .reshape(-1, 1)
+                                        .repeat(1, SL)
+                                        .flatten()
+                                        + torch.arange(SL).repeat(KL)
+                                )
+                                % KL
                         ),
                         torch.arange(SL).repeat(KL) % SL,
                     )
@@ -325,11 +325,11 @@ class EmpiricalVerifier(Verifier):
             if not self.precomputed:
                 self.pre_compute_baseline()
             null_result = self.precomputed_results[
-                torch.randperm(self.precomputed_results.shape[0])[:100].to(
-                    self.rng.device
-                ),
-                : test_result.shape[-1],
-            ]
+                          torch.randperm(self.precomputed_results.shape[0])[:100].to(
+                              self.rng.device
+                          ),
+                          : test_result.shape[-1],
+                          ]
             if null_result.shape[-1] < test_result.shape[-1]:
                 test_result = test_result[: null_result.shape[-1]]
             p_val = (null_result < test_result).sum(axis=0)

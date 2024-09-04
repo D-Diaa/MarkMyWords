@@ -22,9 +22,9 @@ class CodeRating(RatingMetric):
 
         # Load id to folder mapping
         with open(
-            os.path.join(self.config.results, "response_id_to_folder.json"),
-            "r",
-            encoding="utf-8",
+                os.path.join(self.config.results, "response_id_to_folder.json"),
+                "r",
+                encoding="utf-8",
         ) as f:
             response_id_to_folder = json.load(f)
 

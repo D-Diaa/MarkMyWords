@@ -4,23 +4,17 @@ from __future__ import annotations
 
 import logging
 import os
-import pprint
-import shutil
-import sys
 import time
 from multiprocessing import Queue
 
 import argostranslate.package
 import argostranslate.translate
-import nltk
-import numpy as np
 import requests
-import torch
 from lingua import Language, LanguageDetectorBuilder
 from nltk.tokenize import sent_tokenize
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 
-from watermark_benchmark.utils.apis import call_openai, openai_process
+from watermark_benchmark.utils.apis import call_openai
 
 if __name__ == "__main__":
 
@@ -34,7 +28,6 @@ if __name__ == "__main__":
 else:
     from watermark_benchmark.attacks.utils import Attack
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -47,8 +40,6 @@ def loop(f):
     while retry < 3:
         try:
             return f()
-        except openai.InvalidRequestError as e:
-            return None
         except Exception as e:
             print(e)
             time.sleep(1)
@@ -61,19 +52,19 @@ class ParaphraseAttack(Attack):
     """Paraphrase attack using automatic tools."""
 
     def __init__(
-        self,
-        paraphrase_method: str = "default",
-        hf_model: str | None = None,
-        openai_model: str | None = None,
-        dipper_model: bool = False,
-        use_google_translate: bool = False,
-        temperature: float = 1.0,
-        top_p: float = 1.0,
-        presence_penalty: float | None = None,
-        frequency_penalty: float | None = None,
-        translate_lang: str = "French",
-        queue: dict | None = None,
-        resp_queue: Queue | None = None,
+            self,
+            paraphrase_method: str = "default",
+            hf_model: str | None = None,
+            openai_model: str | None = None,
+            dipper_model: bool = False,
+            use_google_translate: bool = False,
+            temperature: float = 1.0,
+            top_p: float = 1.0,
+            presence_penalty: float | None = None,
+            frequency_penalty: float | None = None,
+            translate_lang: str = "French",
+            queue: dict | None = None,
+            resp_queue: Queue | None = None,
     ) -> None:
         """Initialize ParaphraseAttack.
 
@@ -208,8 +199,8 @@ class ParaphraseAttack(Attack):
                 logger.error("Response: %s", response.text)
                 raise
             if (
-                "error" in response
-                and "is currently loading" in response["error"]
+                    "error" in response
+                    and "is currently loading" in response["error"]
             ):
                 # Wait 50% longer than the estimated time
                 wait_time = int(response["estimated_time"] * 1.5)
@@ -312,7 +303,7 @@ class ParaphraseAttack(Attack):
         return answer.strip()
 
     def _query_google_translate(
-        self, text: str, back_translate: bool = False
+            self, text: str, back_translate: bool = False
     ) -> str:
         lang = "en" if back_translate else self._translate_lang
         from_lang = self._translate_lang if back_translate else "en"
@@ -331,13 +322,13 @@ class ParaphraseAttack(Attack):
         return answer
 
     def _run_dipper(
-        self,
-        text: str,
-        lex_diversity=40,
-        order_diversity=60,
-        prefix="",
-        sent_interval=4,
-        **kwargs,
+            self,
+            text: str,
+            lex_diversity=40,
+            order_diversity=60,
+            prefix="",
+            sent_interval=4,
+            **kwargs,
     ):
         """Paraphrase a text using the DIPPER model.
 
@@ -377,7 +368,7 @@ class ParaphraseAttack(Attack):
 
         for sent_idx in range(0, len(sentences), sent_interval):
             curr_sent_window = " ".join(
-                sentences[sent_idx : sent_idx + sent_interval]
+                sentences[sent_idx: sent_idx + sent_interval]
             )
             final_input_text = f"lexical = {lex_code}, order = {order_code}"
             final_input_text += f" <sent> {curr_sent_window} </sent>"
@@ -414,7 +405,7 @@ class ParaphraseAttack(Attack):
                         "fr",
                     ),
                 ),
-                #(
+                # (
                 #    "TranslationAttack_French",
                 #    (
                 #        "translate",
@@ -428,8 +419,8 @@ class ParaphraseAttack(Attack):
                 #        None,
                 #        "fr",
                 #    ),
-                #),
-                #(
+                # ),
+                # (
                 #    "TranslationAttack_Russian",
                 #    (
                 #        "translate",
@@ -443,7 +434,7 @@ class ParaphraseAttack(Attack):
                 #        None,
                 #        "ru",
                 #    ),
-                #),
+                # ),
                 (
                     "ParaphraseAttack_Dipper",
                     (

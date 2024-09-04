@@ -25,14 +25,14 @@ class RepetitionRating(RatingMetric):
         tasks = [gen.response for gen in generations]
 
         for task_idx, task in tqdm(
-            enumerate(tasks), desc="Rating generations", total=len(tasks)
+                enumerate(tasks), desc="Rating generations", total=len(tasks)
         ):
             rep = [0, 0, 0, 0]
             words = task.split()  # Split task into words
 
             for n in range(2, 6):  # For n-grams of length 2 through 5
                 ngrams = [
-                    " ".join(words[i : i + n])
+                    " ".join(words[i: i + n])
                     for i in range(len(words) - n + 1)
                 ]
                 seen = set()

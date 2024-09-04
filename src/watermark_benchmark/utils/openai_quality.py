@@ -1,6 +1,5 @@
 """ Query OpenAI APIs to use GPT as a LLM evaluator """
 
-import math
 import multiprocessing
 import os
 import re
@@ -9,10 +8,10 @@ import sys
 import time
 from dataclasses import replace
 
+import math
 from openai import OpenAI
 from tqdm import tqdm
 
-from ..metrics.llm_rating import prompt_no_cot as rating_prompt
 from . import (
     get_input_file,
     get_output_file,
@@ -20,6 +19,7 @@ from . import (
     setup_randomness,
 )
 from .classes import Generation
+from ..metrics.llm_rating import prompt_no_cot as rating_prompt
 
 rating_prompt = (
     rating_prompt.replace(
@@ -42,13 +42,13 @@ global_process_list = []
 
 
 def rate_completions(
-    prompts,
-    responses,
-    task_queue=None,
-    response_queue=None,
-    number_of_processes=4,
-    display_progress=True,
-    model="gpt-3.5-turbo",
+        prompts,
+        responses,
+        task_queue=None,
+        response_queue=None,
+        number_of_processes=4,
+        display_progress=True,
+        model="gpt-3.5-turbo",
 ):
     """
     Rates the quality of responses to a given set of prompts.
@@ -99,25 +99,25 @@ def rate_completions(
 
     ratings = [0 for _ in prompts]
     for _ in tqdm(
-        prompts,
-        total=len(prompts),
-        desc="Rating responses",
-        disable=not display_progress,
+            prompts,
+            total=len(prompts),
+            desc="Rating responses",
+            disable=not display_progress,
     ):
         i, resp = response_queue.get(block=True)
         try:
             ratings[i] = (
-                float(
-                    re.search(
-                        r"\[\[[0-9][0-9.]?(/10)?\]*",
-                        resp.choices[0].message.content.strip(),
+                    float(
+                        re.search(
+                            r"\[\[[0-9][0-9.]?(/10)?\]*",
+                            resp.choices[0].message.content.strip(),
+                        )
+                        .group(0)
+                        .split("/")[0]
+                        .replace("[", "")
+                        .replace("]", "")
                     )
-                    .group(0)
-                    .split("/")[0]
-                    .replace("[", "")
-                    .replace("]", "")
-                )
-                / 10
+                    / 10
             )
             print(
                 f"{i}:\n\n{tasks[i][1]}\n\n###\n\n{resp.choices[0].message.content}\n\n###\n\n{ratings[i]}"
@@ -180,19 +180,19 @@ def openai_chat_server(call_queue, leader=False):
 
 
 def call_openai(
-    client,
-    message,
-    max_tokens,
-    query_type="chat",
-    model="gpt-3.5-turbo",
-    temperature=1.0,
-    top_p=1,
-    presence_penalty=0,
-    frequency_penalty=0,
-    system_prompt=None,
-    stop=None,
-    timeout=None,
-    n=1,
+        client,
+        message,
+        max_tokens,
+        query_type="chat",
+        model="gpt-3.5-turbo",
+        temperature=1.0,
+        top_p=1,
+        presence_penalty=0,
+        frequency_penalty=0,
+        system_prompt=None,
+        stop=None,
+        timeout=None,
+        n=1,
 ):
     """
     Calls the OpenAI API to generate text based on the given parameters.
@@ -228,9 +228,9 @@ def call_openai(
                     print("Context length exceeded")
                     return None
                 if (
-                    "Rate limit" in str(e)
-                    or "overloaded" in str(e)
-                    or "timed out" in str(e)
+                        "Rate limit" in str(e)
+                        or "overloaded" in str(e)
+                        or "timed out" in str(e)
                 ):
                     if "timed out" in str(e) and retry < 2:
                         params["timeout"] += 30 * retry
@@ -399,7 +399,7 @@ def run(config_file, model="gpt-3.5-turbo"):
                 g.attack,
             )
         )
-        not in existing
+           not in existing
     ]
 
     if not len(tasks):

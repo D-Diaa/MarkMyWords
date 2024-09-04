@@ -1,10 +1,10 @@
 import json
-import math
 import os
 import sys
 from dataclasses import replace
 
 import dill
+import math
 import numpy as np
 
 from watermark_benchmark.utils import get_output_file, load_config
@@ -143,7 +143,7 @@ def run(config_file, generations=None):
     if len(attack_list) > 1:
         if config.validation:
             with open(
-                config.results + "/full/robustness_hull.pkl", "rb"
+                    config.results + "/full/robustness_hull.pkl", "rb"
             ) as infile:
                 robustness_hull = dill.load(infile)
             robustness_summary = summarize_robustness(
@@ -179,13 +179,13 @@ def run(config_file, generations=None):
         for k in summary:
             ws = WatermarkSpec.from_str(k).to_dict()
             if axis == "rng" or (
-                type(axis) != str and any("rng" == v for v in axis)
+                    type(axis) != str and any("rng" == v for v in axis)
             ):
                 if (
-                    ws["rng"] == "Internal"
-                    and ws["hash_len"] == 0
-                    or ws["rng"] != "Internal"
-                    and ws["key_len"] == 1
+                        ws["rng"] == "Internal"
+                        and ws["hash_len"] == 0
+                        or ws["rng"] != "Internal"
+                        and ws["key_len"] == 1
                 ):
                     ws["rng"] = "None"
             if type(axis) == str and axis not in ws:
@@ -202,14 +202,14 @@ def run(config_file, generations=None):
                 [
                     round(v, 3)
                     for v in (
-                        summary[k].quality,
-                        summary[k].efficiency,
-                        (
-                            summary[k].robustness.hull.volume
-                            if summary[k].robustness
-                            else 0
-                        ),
-                    )
+                    summary[k].quality,
+                    summary[k].efficiency,
+                    (
+                        summary[k].robustness.hull.volume
+                        if summary[k].robustness
+                        else 0
+                    ),
+                )
                 ]
             )
         if not len(agg.keys()):

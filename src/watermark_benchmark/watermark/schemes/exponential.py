@@ -1,6 +1,6 @@
-import math
 import random
 
+import math
 import numpy as np
 import scipy
 import torch
@@ -31,7 +31,6 @@ class ExponentialGenerator(Watermark):
         self.skip_prob = skip_prob
 
     def _process(self, logits, previous_tokens, ids):
-
         # Truncate unused logits. Return as is with skip probability
         local_logits = logits[:, : self.rng.vocab_size] / self.temp
         if random.random() < self.skip_prob:
@@ -148,7 +147,7 @@ class ExponentialEmpiricalVerifier(EmpiricalVerifier):
         )
 
     def random_score_matrix(
-        self, tokens, random_shape, shared_randomness, index=0, meta=None
+            self, tokens, random_shape, shared_randomness, index=0, meta=None
     ):
         """Produce a random score vector (faster to directly sample the random scores than to sample all random values)"""
         # To do: repeat random values when token context is the same

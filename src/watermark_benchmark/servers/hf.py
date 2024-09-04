@@ -16,7 +16,6 @@ from watermark_benchmark.utils.classes import (
     WatermarkSpec,
 )
 from watermark_benchmark.utils.stats import Stats
-
 from .server import Server
 
 
@@ -66,14 +65,14 @@ class HFServer(Server, LogitsProcessor):
         return scores
 
     def run(
-        self,
-        inputs: List[str],
-        config: ConfigSpec,
-        temp: float,
-        keys: Optional[List[int]] = None,
-        watermark_spec: Optional[WatermarkSpec] = None,
-        use_tqdm=False,
-        **kwargs,
+            self,
+            inputs: List[str],
+            config: ConfigSpec,
+            temp: float,
+            keys: Optional[List[int]] = None,
+            watermark_spec: Optional[WatermarkSpec] = None,
+            use_tqdm=False,
+            **kwargs,
     ) -> List[Generation]:
         """
         Runs the server.
@@ -100,17 +99,17 @@ class HFServer(Server, LogitsProcessor):
             try:
                 self.current_offset = len(generations)
                 for i in tqdm(
-                    range(0, len(inputs) - len(generations), self.batch_size),
-                    total=(len(inputs) - len(generations)) // self.batch_size,
-                    description=f"Generating text (batch size {self.batch_size})",
-                    disable=not use_tqdm,
+                        range(0, len(inputs) - len(generations), self.batch_size),
+                        total=(len(inputs) - len(generations)) // self.batch_size,
+                        description=f"Generating text (batch size {self.batch_size})",
+                        disable=not use_tqdm,
                 ):
                     self.current_batch = i
                     batch = self.tokenizer(
                         inputs[
-                            self.current_offset
-                            + (i * self.batch_size) : self.current_offset
-                            + ((i + 1) * self.batch_size)
+                        self.current_offset
+                        + (i * self.batch_size): self.current_offset
+                                                 + ((i + 1) * self.batch_size)
                         ],
                         return_tensors="pt",
                         padding=True,
@@ -136,7 +135,7 @@ class HFServer(Server, LogitsProcessor):
                                         self.current_offset
                                         + (i * self.batch_size)
                                         + j
-                                    ]
+                                        ]
                                     if keys is not None
                                     else None
                                 ),
@@ -151,7 +150,7 @@ class HFServer(Server, LogitsProcessor):
                                     self.current_offset
                                     + (i * self.batch_size)
                                     + j
-                                ],
+                                    ],
                                 temp,
                                 [],
                             )

@@ -1,9 +1,9 @@
-from typing import Type, Optional, List
-from random import Random
+from abc import ABC, abstractmethod
+
 import torch
-from abc import ABC, abstractmethod 
 
 ATTACK_LIST = []
+
 
 class Attack(ABC):
 
@@ -24,7 +24,7 @@ class Attack(ABC):
         return self.name
 
     def score(self, model, input_encodings, target_encodings):
-        start=0
+        start = 0
 
         with torch.no_grad():
             scores = []
@@ -37,11 +37,9 @@ class Attack(ABC):
                 output = model(input_encodings, labels=target_encodings)
             batch_size, tgt_len = target_encodings.shape
             logits = torch.nn.functional.softmax(output.logits, dim=2)
-            logits[:,:,0] = 1.0
+            logits[:, :, 0] = 1.0
             logprobs = logits[torch.arange(batch_size).unsqueeze(1).expand(-1, tgt_len), \
-                            torch.arange(tgt_len).unsqueeze(0).expand(batch_size, -1), \
-                            target_encodings].sum(dim=1)
+                torch.arange(tgt_len).unsqueeze(0).expand(batch_size, -1), \
+                target_encodings].sum(dim=1)
             counts = torch.count_nonzero(target_encodings, dim=1)
-        return torch.div(logprobs,counts)
-
-
+        return torch.div(logprobs, counts)

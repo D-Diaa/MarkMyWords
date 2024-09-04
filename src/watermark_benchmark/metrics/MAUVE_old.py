@@ -41,7 +41,7 @@ class MAUVERating(RatingMetric):
 
         mauve = load("mauve")
         for tasks in tqdm(
-            specs.values(), desc="Computing MAUVE scores", total=len(specs)
+                specs.values(), desc="Computing MAUVE scores", total=len(specs)
         ):
             baseline_tasks = [
                 baselines[(str(float(g.temp)), str(g.id))] for _, g in tasks

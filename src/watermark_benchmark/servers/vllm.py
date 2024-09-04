@@ -19,7 +19,6 @@ from watermark_benchmark.utils.classes import (
     WatermarkSpec,
 )
 from watermark_benchmark.utils.stats import Stats
-
 from .server import Server
 
 
@@ -105,7 +104,7 @@ class VLLMServer(Server, LogitProcessor):
         self.watermark_engine = watermark_engine
 
     def process(
-        self, logits: torch.Tensor, sampling_metadata: SamplingMetadata
+            self, logits: torch.Tensor, sampling_metadata: SamplingMetadata
     ) -> torch.Tensor:
         """
         Processes the logits.
@@ -153,14 +152,14 @@ class VLLMServer(Server, LogitProcessor):
         return logits
 
     def run(
-        self,
-        inputs: List[str],
-        config: ConfigSpec,
-        temp: float,
-        keys: Optional[List[int]] = None,
-        watermark_spec: Optional[WatermarkSpec] = None,
-        use_tqdm=False,
-        **kwargs
+            self,
+            inputs: List[str],
+            config: ConfigSpec,
+            temp: float,
+            keys: Optional[List[int]] = None,
+            watermark_spec: Optional[WatermarkSpec] = None,
+            use_tqdm=False,
+            **kwargs
     ) -> List[Generation]:
         """
         Runs the server.
@@ -209,9 +208,9 @@ class VLLMServer(Server, LogitProcessor):
                     [
                         (t, lp[t])
                         for lp, t in zip(
-                            output.prompt_token_ids[1:],
-                            output.prompt_logprobs[1:],
-                        )
+                        output.prompt_token_ids[1:],
+                        output.prompt_logprobs[1:],
+                    )
                     ]
                     if output.prompt_logprobs is not None
                     else None

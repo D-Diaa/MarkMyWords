@@ -12,15 +12,12 @@ from watermark_benchmark.utils import load_config
 from watermark_benchmark.utils.classes import Generation, WatermarkSpec
 from watermark_benchmark.utils.generation_prompts import (
     code_prompt_prefix,
-    raw_low_entropy_prompts,
 )
-
-from .summarize import run as summary_run
 
 
 def gen_wrapper(config, watermarks, custom_builder=None):
     config.baseline = True
-    from .generate import run as gen_run
+    from watermark_benchmark.pipeline.generate import run as gen_run
 
     # Load datasets
     prompt_texts, _, folder_names = load_generations(
@@ -57,22 +54,22 @@ def gen_wrapper(config, watermarks, custom_builder=None):
         generations[idx] = replace(generation, response=response)
 
     with open(
-        os.path.join(config.results, "response_id_to_folder.json"),
-        "w",
-        encoding="utf-8",
+            os.path.join(config.results, "response_id_to_folder.json"),
+            "w",
+            encoding="utf-8",
     ) as f:
         json.dump(response_id_to_folder, f)
     Generation.to_file(config.output_file, generations)
 
 
 def detect_wrapper(config, generations, custom_builder=None):
-    from .detect import run as detect_run
+    from watermark_benchmark.pipeline.detect import run as detect_run
 
     detect_run(config, generations, custom_builder)
 
 
 def rate_wrapper(config, generations):
-    from .quality import run as rate_run
+    from watermark_benchmark.pipeline.quality import run as rate_run
 
     code_generations = generations
 
@@ -85,12 +82,12 @@ def rate_wrapper(config, generations):
 
 
 def run(
-    config,
-    watermarks,
-    custom_builder=None,
-    GENERATE=True,
-    RATE=True,
-    DETECT=True,
+        config,
+        watermarks,
+        custom_builder=None,
+        GENERATE=True,
+        RATE=True,
+        DETECT=True,
 ):
     # Generation
     generations = []

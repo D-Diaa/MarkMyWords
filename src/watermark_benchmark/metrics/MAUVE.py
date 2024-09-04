@@ -1,7 +1,6 @@
 import io
 import logging
 import os
-import random
 import time
 from contextlib import redirect_stdout
 from dataclasses import replace
@@ -40,7 +39,6 @@ class MAUVERating(RatingMetric):
         config = self.config
         device = self.device
         os.environ["CUDA_VISIBLE_DEVICES"] = str(device)
-        import torch
         from vllm import LLM
 
         vllm_logger = logging.getLogger("vllm")
@@ -74,9 +72,9 @@ class MAUVERating(RatingMetric):
 
         new_generations = []
         for key, tasks in tqdm(
-            list(specs.items()),
-            desc="Computing MAUVE scores",
-            total=len(specs),
+                list(specs.items()),
+                desc="Computing MAUVE scores",
+                total=len(specs),
         ):
             p_tokens = np.array(
                 [baseline_encodings[(float(g.temp), g.id)] for _, g in tasks]
@@ -98,10 +96,10 @@ class MAUVERating(RatingMetric):
             q_tokens = np.array([v.outputs.embedding for v in vllm_outputs])
 
             seed = (
-                config.seed
-                if config.seed is not None
-                else int(time.time() * 1000)
-            ) % 100000
+                       config.seed
+                       if config.seed is not None
+                       else int(time.time() * 1000)
+                   ) % 100000
 
             # Redirect stderr at the file descriptor level
             stderr_fd = 2  # Standard error file descriptor is 2

@@ -20,13 +20,13 @@ class Server(ABC):
 
     @abstractmethod
     def run(
-        self,
-        inputs: List[str],
-        config: Dict[str, Any],
-        temp: float,
-        keys: Optional[int] = None,
-        ws: Optional[WatermarkSpec] = None,
-        **kwargs
+            self,
+            inputs: List[str],
+            config: Dict[str, Any],
+            temp: float,
+            keys: Optional[int] = None,
+            ws: Optional[WatermarkSpec] = None,
+            **kwargs
     ) -> List[Generation]:
         """Run server"""
         return []

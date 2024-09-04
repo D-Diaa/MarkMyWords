@@ -201,7 +201,7 @@ def run(config_file, watermarks=None, save_full=False, fixed_keys=None):
     random.shuffle(filtered_tasks)
 
     for idx, device in enumerate(config.get_devices()):
-        local = filtered_tasks[idx * ct : (idx + 1) * ct]
+        local = filtered_tasks[idx * ct: (idx + 1) * ct]
         processes.append(
             multiprocessing.Process(
                 target=gen_process,
@@ -352,7 +352,6 @@ report_topics = [
     ("The Three-Body Problem", "Liu Cixin"),
 ]
 
-
 t1 = ["", "funny ", "sad ", "dramatic ", "suspenseful ", "thrilling "]
 t2 = [
     "a man on a quest to find the Holy Grail.",
@@ -372,7 +371,6 @@ t2 = [
     "a linguist tasked with deciphering an ancient language that holds the secrets of a lost civilization.",
     "an antique restorer that finds an enchanted mirror showing glimpses of different timelines.",
 ]
-
 
 story_topics = [(i, j) for i in t1 for j in t2][:100]
 
@@ -394,9 +392,9 @@ location = [
 ]
 
 fake_news_topics = [
-    (person[i], person[j], location[k])
-    for i in range(len(person))
-    for j in range(len(person))
-    for k in range(len(location))
-    if j > i
-][:100]
+                       (person[i], person[j], location[k])
+                       for i in range(len(person))
+                       for j in range(len(person))
+                       for k in range(len(location))
+                       if j > i
+                   ][:100]

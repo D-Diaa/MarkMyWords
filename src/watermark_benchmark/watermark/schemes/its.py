@@ -1,6 +1,6 @@
-import math
 import random
 
+import math
 import scipy
 import torch
 import torch.nn.functional as F
@@ -104,13 +104,13 @@ class InverseTransformVerifier(Verifier):
         inv_permutation = self.rng.get_permutation(tokens.device, True)
         scores = (
             (
-                xi.repeat(1 + tokens.shape[0] // xi.shape[-1])[
+                    xi.repeat(1 + tokens.shape[0] // xi.shape[-1])[
                     : tokens.shape[0]
-                ]
-                - (
-                    inv_permutation[index, tokens].float()
-                    / (self.rng.vocab_size - 1)
-                )
+                    ]
+                    - (
+                            inv_permutation[index, tokens].float()
+                            / (self.rng.vocab_size - 1)
+                    )
             )
             .abs()
             .contiguous()
@@ -146,13 +146,13 @@ class InverseTransformEmpiricalVerifier(EmpiricalVerifier):
         inv_permutation = self.rng.get_permutation(tokens.device, True)
         rtn = (
             (
-                random_values.repeat(tokens.shape[0], 1).t()
-                - (
-                    inv_permutation[index, tokens]
-                    .float()
-                    .repeat(random_values.shape[0], 1)
-                    / (self.rng.vocab_size - 1)
-                )
+                    random_values.repeat(tokens.shape[0], 1).t()
+                    - (
+                            inv_permutation[index, tokens]
+                            .float()
+                            .repeat(random_values.shape[0], 1)
+                            / (self.rng.vocab_size - 1)
+                    )
             )
             .abs()
             .contiguous()
@@ -160,7 +160,7 @@ class InverseTransformEmpiricalVerifier(EmpiricalVerifier):
         return rtn
 
     def random_score_matrix(
-        self, tokens, random_shape, shared_randomness, index=0, meta=None
+            self, tokens, random_shape, shared_randomness, index=0, meta=None
     ):
         """Produce a random score vector (faster to directly sample the random scores than to sample all random values)"""
         _, L, _ = random_shape
@@ -173,13 +173,13 @@ class InverseTransformEmpiricalVerifier(EmpiricalVerifier):
         inv_permutation = self.rng.get_permutation(tokens.device, True)
         return (
             (
-                random_values.repeat(tokens.shape[0], 1).t()
-                - (
-                    inv_permutation[index, tokens]
-                    .float()
-                    .repeat(random_values.shape[0], 1)
-                    / (self.rng.vocab_size - 1)
-                )
+                    random_values.repeat(tokens.shape[0], 1).t()
+                    - (
+                            inv_permutation[index, tokens]
+                            .float()
+                            .repeat(random_values.shape[0], 1)
+                            / (self.rng.vocab_size - 1)
+                    )
             )
             .abs()
             .contiguous()

@@ -114,10 +114,10 @@ def patch_watermarks(f, gamma_values, combined):
         if edit and is_editable:
             # only one setting
             if (
-                watermark.delta == 2.5
-                and watermark.generator == "distributionshift"
-                and watermark.temp == 1.0
-                and watermark.rng != "Internal"
+                    watermark.delta == 2.5
+                    and watermark.generator == "distributionshift"
+                    and watermark.temp == 1.0
+                    and watermark.rng != "Internal"
             ):
                 for g in gamma_values:
                     verifiers.append(

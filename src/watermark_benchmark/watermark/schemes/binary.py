@@ -1,6 +1,6 @@
-import math
 import random
 
+import math
 import scipy
 import torch
 import torch.nn.functional as F
@@ -71,8 +71,8 @@ class BinaryGenerator(Watermark):
             # If all choices are leaves, stop. We can tell we are on a leaf if the only remaining element has bit -1
             prob_sum = probs.sum(axis=1)
             prob_done = (
-                probs[:, representations[:, bit_index] == -1].sum(axis=1)
-                / prob_sum
+                    probs[:, representations[:, bit_index] == -1].sum(axis=1)
+                    / prob_sum
             )
             branch_filter[prob_done > 0.5] = False
             if not branch_filter.sum():
@@ -80,8 +80,8 @@ class BinaryGenerator(Watermark):
 
             # Compute probability and get randomness
             p = (
-                probs[:, representations[:, bit_index] == 1].sum(axis=1)
-                / prob_sum
+                    probs[:, representations[:, bit_index] == 1].sum(axis=1)
+                    / prob_sum
             )
             h = self.rng.rand_index(seeds, bit_index, device=probs.device)
 
@@ -89,10 +89,10 @@ class BinaryGenerator(Watermark):
 
             # Set probability of stale branches to 0
             criteria = (
-                representations.expand(N, *representations.shape)[
+                    representations.expand(N, *representations.shape)[
                     :, :, bit_index
-                ]
-                != choice[:, bit_index].expand(self.binarizer.V, N).t()
+                    ]
+                    != choice[:, bit_index].expand(self.binarizer.V, N).t()
             )
             probs[criteria] = 0
 
@@ -155,8 +155,8 @@ class BinaryVerifier(Verifier):
         xi = torch.Tensor(xi).to(self.rng.device)
 
         v = (
-            -(xi * binary_tokens + (1 - xi) * (1 - binary_tokens)).abs().log()
-            * mask
+                -(xi * binary_tokens + (1 - xi) * (1 - binary_tokens)).abs().log()
+                * mask
         )
         cumul = v.sum(axis=-1).cumsum(0).tolist()
         ctn = mask.sum(axis=1).cumsum(0).tolist()
@@ -189,7 +189,7 @@ class BinaryEmpiricalVerifier(EmpiricalVerifier):
     """
 
     def __init__(
-        self, rng, pvalue, tokenizer, method, binarizer, skip_prob, gamma
+            self, rng, pvalue, tokenizer, method, binarizer, skip_prob, gamma
     ):
         super().__init__(rng, pvalue, tokenizer, method, gamma, log=True)
         self.skip_prob = skip_prob
@@ -250,13 +250,13 @@ class BinaryEmpiricalVerifier(EmpiricalVerifier):
 
             # Binary tokens has shape SL x L, xi has shape KL x L. We only want to sum coordinates that are not -1.
             v = (
-                (
-                    xi_local[indices[:, :, 0]]
-                    * binary_tokens_local[indices[:, :, 1]]
-                    + (1 - binary_tokens_local[indices[:, :, 1]])
-                    * (1 - xi_local[indices[:, :, 0]])
-                ).abs()
-            ).log() * mask_local[indices[:, :, 1]]
+                    (
+                            xi_local[indices[:, :, 0]]
+                            * binary_tokens_local[indices[:, :, 1]]
+                            + (1 - binary_tokens_local[indices[:, :, 1]])
+                            * (1 - xi_local[indices[:, :, 0]])
+                    ).abs()
+                ).log() * mask_local[indices[:, :, 1]]
             if rslt is None:
                 rslt = v.sum(axis=-1)
             else:
@@ -265,13 +265,13 @@ class BinaryEmpiricalVerifier(EmpiricalVerifier):
         return rslt / mask.sum(axis=-1)
 
     def random_score_matrix(
-        self,
-        tokens,
-        random_shape,
-        shared_randomness,
-        binary_tokens=None,
-        index=0,
-        meta=None,
+            self,
+            tokens,
+            random_shape,
+            shared_randomness,
+            binary_tokens=None,
+            index=0,
+            meta=None,
     ):
         """Produce a random score vector (faster to directly sample the random scores than to sample all random values)"""
         _, L, _ = random_shape
@@ -319,13 +319,13 @@ class BinaryEmpiricalVerifier(EmpiricalVerifier):
             # Binary tokens has shape SL x L, xi has shape KL x L. We only want to sum coordinates that are not -1.
 
             v = (
-                (
-                    xi_local[indices[:, :, 0]]
-                    * binary_tokens_local[indices[:, :, 1]]
-                    + (1 - binary_tokens_local[indices[:, :, 1]])
-                    * (1 - xi_local[indices[:, :, 0]])
-                ).abs()
-            ).log() * mask_local[indices[:, :, 1]]
+                    (
+                            xi_local[indices[:, :, 0]]
+                            * binary_tokens_local[indices[:, :, 1]]
+                            + (1 - binary_tokens_local[indices[:, :, 1]])
+                            * (1 - xi_local[indices[:, :, 0]])
+                    ).abs()
+                ).log() * mask_local[indices[:, :, 1]]
             if rslt is None:
                 rslt = v.sum(axis=-1)
             else:

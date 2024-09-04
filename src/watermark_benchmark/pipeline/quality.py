@@ -5,6 +5,12 @@ import sys
 
 from tqdm import tqdm
 
+from watermark_benchmark.metrics.MAUVE import MAUVERating
+from watermark_benchmark.metrics.code import CodeRating
+from watermark_benchmark.metrics.llm_compare import LLMCompareRating
+from watermark_benchmark.metrics.llm_rating import LLMRating
+from watermark_benchmark.metrics.ppl import PPLRating
+from watermark_benchmark.metrics.repetition import RepetitionRating
 from watermark_benchmark.utils import (
     get_input_file,
     get_output_file,
@@ -12,13 +18,6 @@ from watermark_benchmark.utils import (
     setup_randomness,
 )
 from watermark_benchmark.utils.classes import Generation
-
-from ..metrics.code import CodeRating
-from ..metrics.llm_compare import LLMCompareRating
-from ..metrics.llm_rating import LLMRating
-from ..metrics.MAUVE import MAUVERating
-from ..metrics.ppl import PPLRating
-from ..metrics.repetition import RepetitionRating
 
 
 def writer_process(queue, config, w_count):
@@ -133,19 +132,19 @@ def run(config_file, generations=None):
     writer.start()
 
     for idx, device in enumerate(devices):
-        local_settings = set(settings[idx * ct : (idx + 1) * ct])
+        local_settings = set(settings[idx * ct: (idx + 1) * ct])
         local_tasks = [
             g
             for g in generations
             if (
-                (
-                    str(g.watermark.to_dict(True, True))
-                    if g.watermark is not None
-                    else g.temp
-                ),
-                g.attack,
-            )
-            in local_settings
+                   (
+                       str(g.watermark.to_dict(True, True))
+                       if g.watermark is not None
+                       else g.temp
+                   ),
+                   g.attack,
+               )
+               in local_settings
         ]
         if len(devices) > 1:
             processes.append(

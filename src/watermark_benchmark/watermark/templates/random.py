@@ -66,7 +66,7 @@ class BaseRandomness(ABC):
         pass
 
     def normalize_previous_values(
-        self, previous_values: Union[List[int], torch.Tensor]
+            self, previous_values: Union[List[int], torch.Tensor]
     ):
         """
         Normalize the previous values by padding them with 1s to make them of equal length, and converting them to a tensor.
@@ -91,24 +91,24 @@ class BaseRandomness(ABC):
         return previous_values
 
     def get_seed(
-        self,
-        previous_values: Union[List[int], torch.Tensor],
-        ids: Union[List[int], torch.Tensor] = None,
-        **kwargs
+            self,
+            previous_values: Union[List[int], torch.Tensor],
+            ids: Union[List[int], torch.Tensor] = None,
+            **kwargs
     ) -> Union[str, List[str], torch.Tensor]:
         previous_values = self.normalize_previous_values(previous_values)
         kwargs["ids"] = ids
         return adapt_arguments(self._get_seed, kwargs, previous_values)
 
     def rand_index(
-        self, seeds: Union[str, List[str], torch.Tensor], index: int, **kwargs
+            self, seeds: Union[str, List[str], torch.Tensor], index: int, **kwargs
     ) -> torch.Tensor:
         if isinstance(seeds, str):
             seeds = [seeds]
         return adapt_arguments(self._rand_index, kwargs, seeds, index)
 
     def rand_range(
-        self, seeds: Union[str, List[str], torch.Tensor], length: int, **kwargs
+            self, seeds: Union[str, List[str], torch.Tensor], length: int, **kwargs
     ) -> torch.Tensor:
         if isinstance(seeds, str):
             seeds = [seeds]
@@ -116,7 +116,7 @@ class BaseRandomness(ABC):
 
     @abstractmethod
     def _get_seed(
-        self, previous_values: torch.Tensor, ids: Optional[List[int]] = None
+            self, previous_values: torch.Tensor, ids: Optional[List[int]] = None
     ):
         """Returns the seed for the given previous values and IDs.
 
@@ -128,7 +128,7 @@ class BaseRandomness(ABC):
 
     @abstractmethod
     def _rand_index(
-        self, seeds: Union[List[str], torch.Tensor], index: int, device=None
+            self, seeds: Union[List[str], torch.Tensor], index: int, device=None
     ) -> torch.Tensor:
         """
         Returns a tensor of random values of shape N, where N is the number of seeds.
@@ -139,7 +139,7 @@ class BaseRandomness(ABC):
         """
 
     def _rand_range(
-        self, seeds: Union[List[str], torch.Tensor], length: int, **kwargs
+            self, seeds: Union[List[str], torch.Tensor], length: int, **kwargs
     ) -> torch.Tensor:
         rand_per_index = [
             self.rand_index(seeds, i, **kwargs) for i in range(length)
@@ -189,10 +189,10 @@ class Randomness(BaseRandomness):
 
     @abstractmethod
     def __init__(
-        self,
-        secret_key: Union[List[int], int],
-        devices: Optional[Union[str, List[str]]] = None,
-        vocab_size: int = 1,
+            self,
+            secret_key: Union[List[int], int],
+            devices: Optional[Union[str, List[str]]] = None,
+            vocab_size: int = 1,
     ):
         if isinstance(devices, list):
             self.devices = devices
@@ -282,8 +282,8 @@ class Randomness(BaseRandomness):
         """
         if device not in self.permutation:
             if (
-                type(device) == torch.device
-                and device.index in self.permutation
+                    type(device) == torch.device
+                    and device.index in self.permutation
             ):
                 device = device.index
             else:
@@ -350,14 +350,14 @@ class EmbeddedRandomness(Randomness):
     """
 
     def __init__(
-        self, secret_key, device=None, vocab_size=1, hash_len=1, min_hash=False
+            self, secret_key, device=None, vocab_size=1, hash_len=1, min_hash=False
     ):
         super().__init__(secret_key, device, vocab_size)
         self.hash_len = hash_len
         self.min_hash = min_hash
 
     def _get_seed(
-        self, previous_values: torch.Tensor, ids: Optional[List[int]] = None
+            self, previous_values: torch.Tensor, ids: Optional[List[int]] = None
     ):
         N, _ = previous_values.shape
         if ids is None:
@@ -367,7 +367,7 @@ class EmbeddedRandomness(Randomness):
             tmp = [[] for _ in range(previous_values.shape[0])]
         else:
             tmp = [
-                [v.item() for v in prev[-self.hash_len :]]
+                [v.item() for v in prev[-self.hash_len:]]
                 for prev in previous_values
             ]
             tmp = [
@@ -429,12 +429,12 @@ class ExternalRandomness(Randomness):
     """
 
     def __init__(
-        self,
-        secret_key,
-        device=None,
-        vocab_size=1,
-        key_len=512,
-        random_size=None,
+            self,
+            secret_key,
+            device=None,
+            vocab_size=1,
+            key_len=512,
+            random_size=None,
     ):
         self.key_len = key_len
         super().__init__(secret_key, device, vocab_size)
@@ -476,7 +476,7 @@ class ExternalRandomness(Randomness):
         self.shift = torch.randint(self.key_len, (le,))
 
     def _get_seed(
-        self, previous_values: torch.Tensor, ids: Optional[List[int]] = None
+            self, previous_values: torch.Tensor, ids: Optional[List[int]] = None
     ):
         N, _ = previous_values.shape
         if ids is None:
@@ -489,7 +489,7 @@ class ExternalRandomness(Randomness):
             (
                 ids.unsqueeze(0),
                 (
-                    (self.shift[ids] + self.state[ids] - 1) % self.key_len
+                        (self.shift[ids] + self.state[ids] - 1) % self.key_len
                 ).unsqueeze(0),
             ),
             axis=0,
@@ -497,7 +497,7 @@ class ExternalRandomness(Randomness):
         return rtn
 
     def _rand_range(
-        self, seeds: torch.Tensor, length: int, device=None, **kwargs
+            self, seeds: torch.Tensor, length: int, device=None, **kwargs
     ):
         """The seeds argument is used as an index into the xi tensor."""
         index = seeds

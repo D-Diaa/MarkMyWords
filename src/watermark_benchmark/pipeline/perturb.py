@@ -1,4 +1,3 @@
-import math
 import multiprocessing
 import os
 import signal
@@ -6,6 +5,7 @@ import sys
 import time
 from dataclasses import replace
 
+import math
 from tqdm import tqdm
 
 from watermark_benchmark.attacks.helm_attacks import setup
@@ -19,11 +19,11 @@ from watermark_benchmark.utils.classes import Generation
 
 
 def init_attacks(
-    config,
-    dispatch_queue=None,
-    results_queue=None,
-    synonym_cache=None,
-    names_only=False,
+        config,
+        dispatch_queue=None,
+        results_queue=None,
+        synonym_cache=None,
+        names_only=False,
 ):
     """
     Initializes a dictionary of attack objects based on the given configuration.
@@ -62,7 +62,7 @@ def init_attacks(
     for name, params in SwapAttack.get_param_list():
         attack_list[name] = SwapAttack(*params) if not names_only else True
     for name, params in ParaphraseAttack.get_param_list(
-        reduced=not config.paraphrase
+            reduced=not config.paraphrase
     ):
         attack_list[name] = (
             ParaphraseAttack(
@@ -87,7 +87,7 @@ def init_attacks(
 
 
 def perturb_process(
-    task_queue, writer_queue, results_queue, dispatch, config, synonym_cache
+        task_queue, writer_queue, results_queue, dispatch, config, synonym_cache
 ):
     """
     This function is responsible for perturbing the input text using various attacks.

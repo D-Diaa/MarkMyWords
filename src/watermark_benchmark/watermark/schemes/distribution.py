@@ -139,13 +139,13 @@ class DistributionShiftEmpiricalVerifier(EmpiricalVerifier):
     """
 
     def __init__(
-        self,
-        rng,
-        pvalue,
-        tokenizer,
-        method,
-        gamma_watermark,
-        gamma_edit_distance,
+            self,
+            rng,
+            pvalue,
+            tokenizer,
+            method,
+            gamma_watermark,
+            gamma_edit_distance,
     ):
         super().__init__(
             rng, pvalue, tokenizer, method, gamma_edit_distance, False
@@ -170,13 +170,13 @@ class DistributionShiftEmpiricalVerifier(EmpiricalVerifier):
             ]
         )
         greenlists = greenlists.repeat(1 + L // len(tokens), 1)[
-            : len(tokens), :
-        ].to(self.rng.device)
+                     : len(tokens), :
+                     ].to(self.rng.device)
         rtn = 1 - (greenlists[:, tokens].float())
         return rtn.float()
 
     def random_score_matrix(
-        self, tokens, random_shape, shared_randomness, index=0, meta=None
+            self, tokens, random_shape, shared_randomness, index=0, meta=None
     ):
         """Produce a random score vector (faster to directly sample the random scores than to sample all random values)"""
         _, L, _ = random_shape

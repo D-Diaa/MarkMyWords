@@ -1,4 +1,5 @@
 import sys
+
 from watermark_benchmark.utils.classes import Generation
 
 
@@ -26,13 +27,13 @@ def run(filename, spec_files):
                 split[k].append(gen)
                 break
 
-
     for k in split:
         Generation.to_file(f"generations_{k}.tsv", split[k])
 
 
 def main():
     run(sys.argv[1], sys.argv[2:])
+
 
 if __name__ == '__main__':
     main()

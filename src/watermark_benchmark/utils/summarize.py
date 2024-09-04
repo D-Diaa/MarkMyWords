@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import math
 from dataclasses import replace
 
+import math
 import numpy as np
 from scipy.spatial import ConvexHull
-from scipy.spatial._qhull import QhullError
 
 from .classes import Hull, Robustness
 
@@ -181,10 +180,10 @@ def hull_volume(hull, points, bounds, baseline_quality, direction=None):
         orientation = np.dot(get_normal(values[face]), up)
         surface_area = get_area(values[face])
         volume += (
-            sum([np.dot(up, v) for v in values[face]])
-            * surface_area
-            * orientation
-            / len(bounds)
+                sum([np.dot(up, v) for v in values[face]])
+                * surface_area
+                * orientation
+                / len(bounds)
         )
 
     # Update points
@@ -217,8 +216,8 @@ def summarize_robustness(stats, threshold=0.8, existing_hull=None):
             )
             for attack in stats[model]
             if attack is not None
-            and "dipper" not in attack
-            and "gpt" not in attack
+               and "dipper" not in attack
+               and "gpt" not in attack
         }
         metric_b = {
             attack: (
@@ -227,8 +226,8 @@ def summarize_robustness(stats, threshold=0.8, existing_hull=None):
             )
             for attack in stats[model]
             if attack is not None
-            and "dipper" not in attack
-            and "gpt" not in attack
+               and "dipper" not in attack
+               and "gpt" not in attack
         }
 
         threshold_metric_a = {
@@ -313,7 +312,7 @@ def find_convex_hull(data, baselines, max_seq_len, ignore_robustness=False):
 
 
 def convex_hull_validation(
-    orig_hull, data, baselines, max_seq_len, ignore_robustness=False
+        orig_hull, data, baselines, max_seq_len, ignore_robustness=False
 ):
     rtn = {}
     for (model, temp), points in data.items():
@@ -360,7 +359,7 @@ def find_threshold(data, thresholds, baselines):
         q_baseline, r_baseline = baselines[temp], 0.5 * baselines[temp]
         if thresholds[1] >= 0:
             q_t, r_t = q_baseline * (1 - float(thresholds[0])), r_baseline * (
-                1 - float(thresholds[1])
+                    1 - float(thresholds[1])
             )
             eligible = [
                 item

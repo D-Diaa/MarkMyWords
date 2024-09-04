@@ -1,25 +1,19 @@
-import json
 import multiprocessing
 import os
-import re
 import sys
 from dataclasses import replace
 
-from apps import load_generations
-
-from watermark_benchmark.servers.server import Server
+from watermark_benchmark.pipeline.summarize import run as summary_run
 from watermark_benchmark.utils import load_config
 from watermark_benchmark.utils.classes import Generation, WatermarkSpec
 from watermark_benchmark.utils.generation_prompts import (
     raw_low_entropy_prompts,
 )
 
-from .summarize import run as summary_run
-
 
 def gen_wrapper(config, watermarks, custom_builder=None):
     config.baseline = True
-    from .generate import run as gen_run
+    from watermark_benchmark.pipeline.generate import run as gen_run
 
     # Load datasets
     prompts = raw_low_entropy_prompts
@@ -27,24 +21,24 @@ def gen_wrapper(config, watermarks, custom_builder=None):
 
 
 def detect_wrapper(config, generations, custom_builder=None):
-    from .detect import run as detect_run
+    from watermark_benchmark.pipeline.detect import run as detect_run
 
     detect_run(config, generations, custom_builder)
 
 
 def rate_wrapper(config, generations):
-    from .quality import run as rate_run
+    from watermark_benchmark.pipeline.quality import run as rate_run
 
     rate_run(config, generations)
 
 
 def run(
-    config,
-    watermarks,
-    custom_builder=None,
-    GENERATE=True,
-    RATE=True,
-    DETECT=True,
+        config,
+        watermarks,
+        custom_builder=None,
+        GENERATE=True,
+        RATE=True,
+        DETECT=True,
 ):
     # Generation
     generations = []
@@ -114,9 +108,9 @@ def main():
 
 
 def full_pipeline(
-    config_file,
-    watermarks,
-    custom_builder=None,
+        config_file,
+        watermarks,
+        custom_builder=None,
 ):
     multiprocessing.set_start_method("spawn")
     config = (

@@ -10,6 +10,7 @@ import hash_cpp
 import scipy
 import torch
 from transformers import PreTrainedTokenizerBase
+
 from watermark_benchmark import (
     Binarization,
     ConfigSpec,
@@ -90,11 +91,11 @@ class ExampleWatermark(Watermark):
 
 # Define the builder function. Return None for unhandled cases
 def custom_builder(
-    watermark_spec: Optional[WatermarkSpec],
-    tokenizer: Optional[PreTrainedTokenizerBase],
-    binarizer: Optional[Binarization],
-    device: Union[str, int, torch.device] = "cpu",
-    key: Union[str, List[str]] = None,
+        watermark_spec: Optional[WatermarkSpec],
+        tokenizer: Optional[PreTrainedTokenizerBase],
+        binarizer: Optional[Binarization],
+        device: Union[str, int, torch.device] = "cpu",
+        key: Union[str, List[str]] = None,
 ) -> Optional[Watermark]:
     if watermark_spec is None or watermark_spec.generator != "example":
         return None

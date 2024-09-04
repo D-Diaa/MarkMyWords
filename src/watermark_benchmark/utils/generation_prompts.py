@@ -116,7 +116,6 @@ report_topics = [
     ("The Three-Body Problem", "Liu Cixin"),
 ]
 
-
 t1 = ["", "funny ", "sad ", "dramatic ", "suspenseful ", "thrilling "]
 t2 = [
     "a man on a quest to find the Holy Grail.",
@@ -136,7 +135,6 @@ t2 = [
     "a linguist tasked with deciphering an ancient language that holds the secrets of a lost civilization.",
     "an antique restorer that finds an enchanted mirror showing glimpses of different timelines.",
 ]
-
 
 story_topics = [(i, j) for i in t1 for j in t2][:100]
 
@@ -158,13 +156,12 @@ location = [
 ]
 
 fake_news_topics = [
-    (person[i], person[j], location[k])
-    for i in range(len(person))
-    for j in range(len(person))
-    for k in range(len(location))
-    if j > i
-][:100]
-
+                       (person[i], person[j], location[k])
+                       for i in range(len(person))
+                       for j in range(len(person))
+                       for k in range(len(location))
+                       if j > i
+                   ][:100]
 
 raw_prompts = [
     (raw_prompt.format(*topic), sys_prompt)
@@ -191,13 +188,12 @@ paraphrase_prompt = (
 translation_prompt = "Translate the following text to French:\n[[START OF TEXT]]\n{}\n[[END OF TEXT]]"
 
 raw_low_entropy_prompts = [
-    (paraphrase_prompt.format(prompt), paraphrase_system_prompt)
-    for prompt in raw_low_entropy_data
-] + [
-    (translation_prompt.format(prompt), translation_system_prompt)
-    for prompt in raw_low_entropy_data
-]
-
+                              (paraphrase_prompt.format(prompt), paraphrase_system_prompt)
+                              for prompt in raw_low_entropy_data
+                          ] + [
+                              (translation_prompt.format(prompt), translation_system_prompt)
+                              for prompt in raw_low_entropy_data
+                          ]
 
 code_prompt_prefix = """Your task is to answer coding questions. Please start by explaining your reasoning, then output the solution python code. Make sure your python code is correct, and that it will correctly parse the input from standard input to produce the desired output. Use the following format, making sure of ONLY returning code after the [[SOLUTION]] tag:
 

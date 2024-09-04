@@ -3,8 +3,8 @@ import random
 import re
 from dataclasses import replace
 
-from ..utils import get_server_args, setup_randomness
 from .quality import RatingMetric
+from ..utils import get_server_args, setup_randomness
 
 
 class LLMCompareRating(RatingMetric):
@@ -84,17 +84,17 @@ class LLMCompareRating(RatingMetric):
             matches = re.findall(num_regex, gen.outputs[0].text.strip())
             if matches and len(matches):
                 if (
-                    matches[0] == "[[A]]"
-                    and local_first
-                    or matches[0] == "[[B]]"
-                    and not local_first
+                        matches[0] == "[[A]]"
+                        and local_first
+                        or matches[0] == "[[B]]"
+                        and not local_first
                 ):
                     raw = 1
                 elif (
-                    matches[0] == "[[B]]"
-                    and local_first
-                    or matches[0] == "[[A]]"
-                    and not local_first
+                        matches[0] == "[[B]]"
+                        and local_first
+                        or matches[0] == "[[A]]"
+                        and not local_first
                 ):
                     raw = 0
                 else:

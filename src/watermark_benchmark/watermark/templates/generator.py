@@ -35,11 +35,11 @@ class Watermark(ABC):
     """
 
     def __init__(
-        self,
-        rng: BaseRandomness,
-        verifiers: Union[List[Verifier], Verifier],
-        tokenizer: Optional[PreTrainedTokenizerBase] = None,
-        temp: float = 1.0,
+            self,
+            rng: BaseRandomness,
+            verifiers: Union[List[Verifier], Verifier],
+            tokenizer: Optional[PreTrainedTokenizerBase] = None,
+            temp: float = 1.0,
     ):
         self.rng = rng
         self.verifiers = verifiers
@@ -49,10 +49,10 @@ class Watermark(ABC):
             self.verifiers = [self.verifiers]
 
     def process(
-        self,
-        logits: Tensor,
-        previous_tokens: Tensor,
-        ids: Tensor,
+            self,
+            logits: Tensor,
+            previous_tokens: Tensor,
+            ids: Tensor,
     ) -> Tensor:
         """
         Abstract method for processing logits.
@@ -78,7 +78,7 @@ class Watermark(ABC):
         self.rng.reset()
 
     def verify(
-        self, tokens, skip_edit=False, meta=None, **kwargs
+            self, tokens, skip_edit=False, meta=None, **kwargs
     ) -> Dict[Tuple[float, str, str], VerifierOutput]:
         """
         Verifies the watermark in the given tokens.

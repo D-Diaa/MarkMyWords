@@ -1,7 +1,7 @@
-import math
 import os
 from dataclasses import replace
 
+import math
 from tqdm import tqdm
 
 from .quality import RatingMetric
@@ -128,8 +128,8 @@ class PPLRating(RatingMetric):
         for idx, gen in enumerate(outputs):
             input_task = tasks[idx]
             if (
-                "<|begin_of_text|><|start_header_id|>system<|end_header_id|>"
-                in input_task
+                    "<|begin_of_text|><|start_header_id|>system<|end_header_id|>"
+                    in input_task
             ):
                 turn_index = 3
             else:

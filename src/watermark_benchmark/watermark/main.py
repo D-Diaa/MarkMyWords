@@ -64,23 +64,23 @@ class WatermarkNotFoundError(Exception):
 
 
 def get_watermark(
-    watermark_spec: Optional[WatermarkSpec],
-    tokenizer: Optional[PreTrainedTokenizerBase],
-    binarizer: Optional[Binarization],
-    device: Union[str, int, torch.device] = "cpu",
-    key: Optional[Union[str, List[str]]] = None,
-    builder: Optional[
-        Callable[
-            [
-                Optional[WatermarkSpec],
-                Optional[PreTrainedTokenizerBase],
-                Optional[Binarization],
-                Union[str, int, torch.device],
-                Union[str, List[str]],
-            ],
-            Optional[Watermark],
-        ]
-    ] = None,
+        watermark_spec: Optional[WatermarkSpec],
+        tokenizer: Optional[PreTrainedTokenizerBase],
+        binarizer: Optional[Binarization],
+        device: Union[str, int, torch.device] = "cpu",
+        key: Optional[Union[str, List[str]]] = None,
+        builder: Optional[
+            Callable[
+                [
+                    Optional[WatermarkSpec],
+                    Optional[PreTrainedTokenizerBase],
+                    Optional[Binarization],
+                    Union[str, int, torch.device],
+                    Union[str, List[str]],
+                ],
+                Optional[Watermark],
+            ]
+        ] = None,
 ):
     # Parse parameters
     if not tokenizer:
@@ -105,8 +105,8 @@ def get_watermark(
         )
     else:
         if (
-            watermark_spec.generator == "distributionshift"
-            or watermark_spec.generator == "its"
+                watermark_spec.generator == "distributionshift"
+                or watermark_spec.generator == "its"
         ):
             rng = ExternalRandomness(
                 key, device, len(tokenizer), watermark_spec.key_len, 1

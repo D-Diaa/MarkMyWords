@@ -1,9 +1,9 @@
 import glob
 import json
-import math
 import random
 import sys
 
+import math
 import numpy as np
 import torch
 from dahuffman import HuffmanCodec
@@ -13,17 +13,17 @@ from transformers import AutoTokenizer
 
 class Binarization:
     def __init__(
-        self,
-        tokenizer,
-        devices="cpu",
-        use_huffman_coding=True,
-        huffman_coding_path=None,
-        corpus=None,
-        save_path="huffman_coding.tsv",
+            self,
+            tokenizer,
+            devices="cpu",
+            use_huffman_coding=True,
+            huffman_coding_path=None,
+            corpus=None,
+            save_path="huffman_coding.tsv",
     ):
         # Check consistency of arguments
         if use_huffman_coding and (
-            huffman_coding_path is None and corpus is None
+                huffman_coding_path is None and corpus is None
         ):
             raise Exception(
                 "In order to use Huffman coding, you need to either specify an existing huffman coding path, or a corpus of text"
@@ -88,9 +88,9 @@ class Binarization:
     def is_leaf(self, encodings):
         if not self.huffman:
             if (
-                (type(encodings) == torch.Tensor and len(encodings.shape) == 1)
-                or type(encodings) == list
-                and type(encodings[0]) != list
+                    (type(encodings) == torch.Tensor and len(encodings.shape) == 1)
+                    or type(encodings) == list
+                    and type(encodings[0]) != list
             ):
                 return False
             elif type(encodings) == torch.Tensor and len(encodings.shape) > 1:
@@ -126,7 +126,7 @@ class Binarization:
         articles = random.sample(data, article_count)
 
         for txt in tqdm(
-            articles, desc="Encoding wikipedia articles", total=article_count
+                articles, desc="Encoding wikipedia articles", total=article_count
         ):
             encoded = tokenizer(txt, return_tensors="pt").input_ids.squeeze()
             counts += torch.nn.functional.one_hot(encoded, len(tokenizer)).sum(
@@ -257,8 +257,8 @@ if __name__ == "__main__":
         [
             bits_lists[i] == v
             for i, v in enumerate(
-                binarization.to_bit(binarization.to_token(bits_lists))
-            )
+            binarization.to_bit(binarization.to_token(bits_lists))
+        )
         ]
     )
 

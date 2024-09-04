@@ -1,18 +1,14 @@
-import math
 import random
 import re
 import sys
-from multiprocessing import Queue
 
 import nltk
-import numpy as np
 import textattack
-import torch
 from nltk.corpus import wordnet
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize as wt
-from pyinflect import getAllInflections, getInflection
-from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, GenerationConfig
+from pyinflect import getInflection
+from transformers import GenerationConfig
 
 from .utils import Attack
 
@@ -28,12 +24,12 @@ local_cache = {}
 class SynonymAttack(Attack):
 
     def __init__(
-        self,
-        p=1.0,
-        confidence=0.01,
-        generation_queue=None,
-        resp_queue=None,
-        cache=None,
+            self,
+            p=1.0,
+            confidence=0.01,
+            generation_queue=None,
+            resp_queue=None,
+            cache=None,
     ):
         super().__init__("SynonymAttack")
         self.p = p
@@ -59,12 +55,12 @@ class SynonymAttack(Attack):
         self.generate_synonyms_fast(text)
 
         separators = [
-            match.end() for match in re.finditer(self.regex, text)
-        ] + [len(text)]
+                         match.end() for match in re.finditer(self.regex, text)
+                     ] + [len(text)]
         rslt = self.warp_sentence(text[: separators[0]], input_str)
         for i in range(len(separators) - 1):
             rslt += self.warp_sentence(
-                text[separators[i] : separators[i + 1]], input_str
+                text[separators[i]: separators[i + 1]], input_str
             )
         return rslt
 
@@ -104,9 +100,9 @@ class SynonymAttack(Attack):
                 self.inflect(word, t)
                 for word in set(self.wordNetSynonyms(w, pos))
                 if textattack.shared.utils.is_one_word(word)
-                and not textattack.shared.utils.check_if_punctuations(word)
-                and not self.check_if_present(word, context, pos)
-                and not "_" in word
+                   and not textattack.shared.utils.check_if_punctuations(word)
+                   and not self.check_if_present(word, context, pos)
+                   and not "_" in word
             ]
 
             self.cache[(context, word)] = options
@@ -118,12 +114,12 @@ class SynonymAttack(Attack):
 
         # Break down into sentences
         separators = (
-            [0]
-            + [match.end() for match in re.finditer(self.regex, text)]
-            + [len(text)]
+                [0]
+                + [match.end() for match in re.finditer(self.regex, text)]
+                + [len(text)]
         )
         sentences = [
-            text[separators[i] : separators[i + 1]]
+            text[separators[i]: separators[i + 1]]
             for i in range(len(separators) - 1)
         ]
         questions, queries, wn_syns, tags = [], [], [], []
@@ -213,11 +209,11 @@ class SynonymAttack(Attack):
                 self.inflect(word, tag)
                 for word in set(full_word_list + wn_syn_list)
                 if textattack.shared.utils.is_one_word(word)
-                and not textattack.shared.utils.check_if_punctuations(word)
-                and not self.check_if_present(
+                   and not textattack.shared.utils.check_if_punctuations(word)
+                   and not self.check_if_present(
                     word, context, self.convert_to_pos(tag)
                 )
-                and not "_" in word
+                   and not "_" in word
             ]
 
             self.cache[query] = options
@@ -233,20 +229,20 @@ class SynonymAttack(Attack):
             return False
 
         if tag not in (
-            "JJ",
-            "JJR",
-            "JJS",
-            "RB",
-            "RBR",
-            "RBS",
-            "VB",
-            "VBD",
-            "VBG",
-            "VBN",
-            "VBP",
-            "VBZ",
-            "NN",
-            "NNS",
+                "JJ",
+                "JJR",
+                "JJS",
+                "RB",
+                "RBR",
+                "RBS",
+                "VB",
+                "VBD",
+                "VBG",
+                "VBN",
+                "VBP",
+                "VBZ",
+                "NN",
+                "NNS",
         ):
             return False
 
@@ -282,8 +278,8 @@ class SynonymAttack(Attack):
             return pos
         len_sentence = len(tokens)
         return tokens[
-            max(0, i - self.window) : min(len_sentence, i + self.window)
-        ]
+               max(0, i - self.window): min(len_sentence, i + self.window)
+               ]
 
     def warp_sentence(self, sentence, input_text=""):
 
@@ -319,16 +315,15 @@ class SynonymAttack(Attack):
 
             word = random.choice(options)
             sentence = (
-                sentence[:index]
-                + word
-                + sentence[index + len(cache_entry[1]) :]
+                    sentence[:index]
+                    + word
+                    + sentence[index + len(cache_entry[1]):]
             )
 
         return sentence
 
 
 def main():
-
     Syn = SynonymAttack(p=0.5)
     for line in sys.stdin:
         if "q" == line.rstrip():

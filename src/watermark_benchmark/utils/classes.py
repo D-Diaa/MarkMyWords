@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import ast
-import math
 import re
 from dataclasses import dataclass, field, replace
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import dacite
+import math
 from apps.classes import ConfigCode
 
 
@@ -216,15 +216,15 @@ class Generation:
             elif key in ["key", "token_count", "id"] and val is not None:
                 val = int(val)
             elif (
-                key
-                in [
-                    "rating",
-                    "pvalue",
-                    "efficiency",
-                    "entropy",
-                    "spike_entropy",
-                ]
-                and val is not None
+                    key
+                    in [
+                        "rating",
+                        "pvalue",
+                        "efficiency",
+                        "entropy",
+                        "spike_entropy",
+                    ]
+                    and val is not None
             ):
                 try:
                     val = float(val)
@@ -263,7 +263,7 @@ class Generation:
 
     @staticmethod
     def to_file(
-        filename: str, generations: Optional[List[Generation]] = None
+            filename: str, generations: Optional[List[Generation]] = None
     ) -> None:
         with open(filename, "w") as outfile:
             outfile.write("\t".join(Generation.keys()) + "\n")
@@ -340,25 +340,25 @@ class BenchmarkResults:
         base_keys = ["quality", "efficiency", "percent_watermarked"]
         keys = ["watermark"] + base_keys + Robustness.tsv_keys()
         return (
-            "\t".join(keys)
-            + "\n"
-            + "\n".join(
-                "\t".join(
-                    v
-                    for v in [
-                        str(i)
-                        for i in [w]
-                        + [v.__dict__[k] for k in base_keys]
-                        + (
-                            v.robustness.to_list()
-                            if v.robustness is not None
-                            else []
-                        )
-                    ]
-                )
-                for w, v in s.items()
+                "\t".join(keys)
+                + "\n"
+                + "\n".join(
+            "\t".join(
+                v
+                for v in [
+                    str(i)
+                    for i in [w]
+                             + [v.__dict__[k] for k in base_keys]
+                             + (
+                                 v.robustness.to_list()
+                                 if v.robustness is not None
+                                 else []
+                             )
+                ]
             )
-            + "\n"
+            for w, v in s.items()
+        )
+                + "\n"
         )
 
 

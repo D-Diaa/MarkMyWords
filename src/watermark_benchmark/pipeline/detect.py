@@ -104,7 +104,7 @@ def detect_process(device, config, tasks, writer_queue, custom_builder=None):
                 sep_watermarks = watermark.sep_verifiers()
 
                 for verifier_index, verifier_output in enumerate(
-                    verifier_outputs.values()
+                        verifier_outputs.values()
                 ):
                     pvalue = verifier_output.get_pvalue()
                     eff = verifier_output.get_size(watermark.pvalue)
@@ -179,7 +179,7 @@ def run(config, generations=None, custom_builder=None):
         str(g.watermark.to_dict(True, False)): []
         for g in duplicated_generations
         if g.watermark is not None
-        and str(g.watermark.to_dict(True, False)) not in existing
+           and str(g.watermark.to_dict(True, False)) not in existing
     }
     baselines = {
         str(g.temp): []
@@ -195,8 +195,8 @@ def run(config, generations=None, custom_builder=None):
         if g.watermark is None and str(g.temp) in baselines:
             baselines[str(g.temp)].append(g)
         elif (
-            g.watermark is not None
-            and str(g.watermark.to_dict(True, False)) in specs
+                g.watermark is not None
+                and str(g.watermark.to_dict(True, False)) in specs
         ):
             specs[str(g.watermark.to_dict(True, False))].append(g)
 

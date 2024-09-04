@@ -1,8 +1,9 @@
+import json
 import random
 import re
-from .utils import ATTACK_LIST, Attack
 from typing import Optional, List
-import json
+
+from .utils import Attack
 
 # Global vars
 GLOBALS = {}
@@ -85,15 +86,18 @@ CONTRACTION_MAP = {
     "you're": "you are",
     "you've": "you have",
 }
-CONTRACTION_PATTERN = re.compile(r"\b({})\b".format("|".join(CONTRACTION_MAP.keys())), flags=re.IGNORECASE | re.DOTALL, )
+CONTRACTION_PATTERN = re.compile(r"\b({})\b".format("|".join(CONTRACTION_MAP.keys())),
+                                 flags=re.IGNORECASE | re.DOTALL, )
 REVERSE_CONTRACTION_MAP = {value: key for key, value in CONTRACTION_MAP.items()}
-REVERSE_CONTRACTION_PATTERN = re.compile(r"\b({})\b ".format("|".join(REVERSE_CONTRACTION_MAP.keys())),flags=re.IGNORECASE | re.DOTALL,)
+REVERSE_CONTRACTION_PATTERN = re.compile(r"\b({})\b ".format("|".join(REVERSE_CONTRACTION_MAP.keys())),
+                                         flags=re.IGNORECASE | re.DOTALL, )
 
 
 def setup(config):
     with open(config.misspellings, "r") as f:
         GLOBALS['correct_to_misspelling'] = json.load(f)
-        GLOBALS['mispelling_pattern'] = re.compile(r"\b({})\b".format("|".join(GLOBALS['correct_to_misspelling'].keys())))
+        GLOBALS['mispelling_pattern'] = re.compile(
+            r"\b({})\b".format("|".join(GLOBALS['correct_to_misspelling'].keys())))
 
 
 def match_case(source_word: str, target_word: str) -> str:
@@ -120,10 +124,10 @@ class MisspellingAttack(Attack):
     @staticmethod
     def get_param_list():
         basename = "MisspellingAttack_{}"
-        raw_params = [(0.25,),(0.5,)]
+        raw_params = [(0.25,), (0.5,)]
         return [(basename.format(p), p) for p in raw_params]
 
-    def warp(self, text: str, input_encodings: Optional[List] = None) -> str: 
+    def warp(self, text: str, input_encodings: Optional[List] = None) -> str:
         def mispell(match: re.Match) -> str:
             word = match.group(1)
             if random.random() < self.prob:
@@ -137,6 +141,7 @@ class MisspellingAttack(Attack):
 
 class TypoAttack(Attack):
     """ From HELM """
+
     def __init__(self, prob):
         super().__init__('TypoAttack_{}'.format(prob))
         self.prob = prob
@@ -171,14 +176,13 @@ class TypoAttack(Attack):
         key_approx["m"] = "jkn"
         self.key_approx = key_approx
 
-
     @staticmethod
     def get_param_list():
         basename = "TypoAttack_{}"
-        raw_params = [(0.05,),(0.1,)]
+        raw_params = [(0.05,), (0.1,)]
         return [(basename.format(p), p) for p in raw_params]
 
-    def warp(self, text: str, input_encodings: Optional[List] = None) -> str: 
+    def warp(self, text: str, input_encodings: Optional[List] = None) -> str:
         perturbed_texts = ""
         for letter in text:
             lcletter = letter.lower()
@@ -198,6 +202,7 @@ class TypoAttack(Attack):
 
 class LowercaseAttack(Attack):
     """ From HELM """
+
     def __init__(self):
         super().__init__('LowercaseAttack')
 
@@ -205,12 +210,13 @@ class LowercaseAttack(Attack):
     def get_param_list():
         return [("LowercaseAttack", ())]
 
-    def warp(self, text: str, input_encodings: Optional[List] = None) -> str: 
+    def warp(self, text: str, input_encodings: Optional[List] = None) -> str:
         return text.lower()
 
 
 class ContractionAttack(Attack):
     """ From HELM """
+
     def __init__(self):
         super().__init__('ContractionAttack')
 
@@ -218,7 +224,7 @@ class ContractionAttack(Attack):
     def get_param_list():
         return [("ContractionAttack", ())]
 
-    def warp(self, text: str, input_encodings: Optional[List] = None) -> str: 
+    def warp(self, text: str, input_encodings: Optional[List] = None) -> str:
         def cont(possible):
             match = possible.group(1)
             expanded_contraction = REVERSE_CONTRACTION_MAP.get(
@@ -231,6 +237,7 @@ class ContractionAttack(Attack):
 
 class ExpansionAttack(Attack):
     """ From HELM """
+
     def __init__(self):
         super().__init__('ExpansionAttack')
 
@@ -238,7 +245,7 @@ class ExpansionAttack(Attack):
     def get_param_list():
         return [("ExpansionAttack", ())]
 
-    def warp(self, text: str, input_encodings: Optional[List] = None) -> str: 
+    def warp(self, text: str, input_encodings: Optional[List] = None) -> str:
         def expand_match(contraction):
             match = contraction.group(0)
             expanded_contraction = CONTRACTION_MAP.get(match, CONTRACTION_MAP.get(match.lower()))
@@ -254,4 +261,3 @@ def init_helm_attacks(names_only=False):
             dest[name] = att(*params) if not names_only else True
 
     return dest
-        

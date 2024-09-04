@@ -1,12 +1,10 @@
-import math
 import os
 import time
 
+import math
 import tiktoken
 import torch
 from openai import OpenAI
-
-from watermark_benchmark.utils.classes import WatermarkSpec
 
 openai_cache = {}
 
@@ -23,19 +21,19 @@ _MAX_TOKENS_BY_MODEL = {
 
 
 def call_openai(
-    model,
-    temperature,
-    top_p,
-    presence_penalty,
-    frequency_penalty,
-    prompt,
-    system_prompt,
-    max_tokens,
-    timeout,
-    logprobs,
-    echo,
-    client=None,
-    cache=openai_cache,
+        model,
+        temperature,
+        top_p,
+        presence_penalty,
+        frequency_penalty,
+        prompt,
+        system_prompt,
+        max_tokens,
+        timeout,
+        logprobs,
+        echo,
+        client=None,
+        cache=openai_cache,
 ):
     # Call openai API and return results
 
@@ -152,7 +150,7 @@ def call_dipper(model, tokenizer, texts, device="cpu"):
 
             for r in range(rounds):
                 truncated_input = {
-                    k: v[r * round_size : (r + 1) * round_size]
+                    k: v[r * round_size: (r + 1) * round_size]
                     for k, v in input.items()
                 }
 
@@ -175,12 +173,12 @@ def call_dipper(model, tokenizer, texts, device="cpu"):
                             raise e
 
                 text_output += (
-                    " ".join(
-                        tokenizer.batch_decode(
-                            outputs, skip_special_tokens=True
+                        " ".join(
+                            tokenizer.batch_decode(
+                                outputs, skip_special_tokens=True
+                            )
                         )
-                    )
-                    + " "
+                        + " "
                 )
 
             if not error:

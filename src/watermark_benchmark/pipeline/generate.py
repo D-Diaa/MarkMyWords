@@ -31,7 +31,7 @@ def writer_process(queue, config, w_count, use_tqdm=True):
     outfilepath = get_output_file(config)
 
     for _ in tqdm(
-        range(w_count), total=w_count, desc="Generations", disable=not use_tqdm
+            range(w_count), total=w_count, desc="Generations", disable=not use_tqdm
     ):
         task = queue.get(block=True)
         if task is None:
@@ -43,13 +43,13 @@ def writer_process(queue, config, w_count, use_tqdm=True):
 
 
 def gen_process(
-    config,
-    tasks,
-    writer_queue,
-    device,
-    prompts,
-    custom_builder=None,
-    use_tqdm=False,
+        config,
+        tasks,
+        writer_queue,
+        device,
+        prompts,
+        custom_builder=None,
+        use_tqdm=False,
 ):
     """
     This function is a process that generates watermarked text.
@@ -119,11 +119,11 @@ def gen_process(
 
 
 def run(
-    config_file,
-    watermarks=None,
-    custom_builder=None,
-    raw_prompts=default_prompts,
-    use_tqdm=False,
+        config_file,
+        watermarks=None,
+        custom_builder=None,
+        raw_prompts=default_prompts,
+        use_tqdm=False,
 ):
     """
     This function runs the watermark generation process.
@@ -204,7 +204,7 @@ def run(
 
     if len(config.get_devices()) > 1:
         for idx, device in enumerate(config.get_devices()):
-            local = filtered_tasks[idx * ct : (idx + 1) * ct]
+            local = filtered_tasks[idx * ct: (idx + 1) * ct]
             processes.append(
                 multiprocessing.Process(
                     target=gen_process,
