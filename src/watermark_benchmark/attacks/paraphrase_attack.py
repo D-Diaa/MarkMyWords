@@ -160,7 +160,8 @@ class ParaphraseAttack(Attack):
                     "kalpeshk2011/dipper-paraphraser-xxl"
                 ).cuda()
                 self.device = "cuda"
-            except:
+            except RuntimeError:  # Catch specific CUDA out-of-memory error
+                print("CUDA out of memory. Falling back to CPU.")
                 self.model = T5ForConditionalGeneration.from_pretrained(
                     "kalpeshk2011/dipper-paraphraser-xxl"
                 )
@@ -363,7 +364,6 @@ class ParaphraseAttack(Attack):
 
         input_text = " ".join(text.split())
         sentences = sent_tokenize(input_text)
-        output_text = ""
         queries = []
 
         for sent_idx in range(0, len(sentences), sent_interval):
@@ -375,15 +375,18 @@ class ParaphraseAttack(Attack):
             queries.append(final_input_text)
 
         if self._queue is None:
-            # Not supported
-            raise NotImplementedError(
-                "Dipper is only accessible through the API"
-            )
+            # Local inference
+            outputs = []
+            for query in queries:
+                input_ids = self.tokenizer(query, return_tensors="pt").input_ids.to(self.device)
+                output = self.model.generate(input_ids, max_new_tokens=512)
+                outputs.append(self.tokenizer.decode(output[0], skip_special_tokens=True))
+            return " ".join(outputs)
         else:
+            # Distributed inference
             self._queue["dipper"].put((queries, self._resp_queue))
             output = self._resp_queue.get(block=True)
-
-        return output
+            return output
 
     @staticmethod
     def get_param_list(reduced=False):
