@@ -233,8 +233,9 @@ def run(config_file, generations=None):
     if not task_count:
         return
 
-    # Setup dipper & google translate processes
-    dipper_queue, translate_queue = (
+    # Setup dipper, google translate, and custom model processes
+    dipper_queue, translate_queue, custom_model_queue = (
+        global_manager.Queue(),
         global_manager.Queue(),
         global_manager.Queue(),
     )
@@ -289,11 +290,23 @@ def run(config_file, generations=None):
             )
             processes[-1].start()
 
+    # Setup custom model process
+    if config.custom_model_path:
+        for d in config.get_devices():
+            processes.append(
+                multiprocessing.Process(
+                    target=custom_model_process,
+                    args=(custom_model_queue, config.custom_model_path, d),
+                )
+            )
+            processes[-1].start()
+
     # Setup dispatch process
     dispatch_queues = {
         "dipper": dipper_queue,
         "translate": translate_queue,
         "openai": openai_queue,
+        "custom_model": custom_model_queue,
     }
 
     # Setup perturbation processes

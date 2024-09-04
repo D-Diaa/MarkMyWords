@@ -58,6 +58,7 @@ class ParaphraseAttack(Attack):
             openai_model: str | None = None,
             dipper_model: bool = False,
             use_google_translate: bool = False,
+            custom_model_path: str | None = None,
             temperature: float = 1.0,
             top_p: float = 1.0,
             presence_penalty: float | None = None,
@@ -96,6 +97,7 @@ class ParaphraseAttack(Attack):
         self._openai_model = openai_model
         self._dipper = dipper_model
         self._use_google_translate = use_google_translate
+        self._custom_model_path = custom_model_path
 
         # Sampling params
         self._temperature = temperature
@@ -108,7 +110,7 @@ class ParaphraseAttack(Attack):
             self._is_chat = "gpt" in self._openai_model
 
         # Only one model can be used at a time
-        models = [hf_model, openai_model, use_google_translate, dipper_model]
+        models = [hf_model, openai_model, use_google_translate, dipper_model, custom_model_path]
         num_models = sum(
             int(model is not None and model is not False) for model in models
         )
@@ -401,6 +403,7 @@ class ParaphraseAttack(Attack):
                         "gpt-3.5-turbo",
                         False,
                         False,
+                        None,
                         1.0,
                         1.0,
                         None,
@@ -408,36 +411,6 @@ class ParaphraseAttack(Attack):
                         "fr",
                     ),
                 ),
-                # (
-                #    "TranslationAttack_French",
-                #    (
-                #        "translate",
-                #        None,
-                #        None,
-                #        False,
-                #        True,
-                #        1.0,
-                #        1.0,
-                #        None,
-                #        None,
-                #        "fr",
-                #    ),
-                # ),
-                # (
-                #    "TranslationAttack_Russian",
-                #    (
-                #        "translate",
-                #        None,
-                #        None,
-                #        False,
-                #        True,
-                #        1.0,
-                #        1.0,
-                #        None,
-                #        None,
-                #        "ru",
-                #    ),
-                # ),
                 (
                     "ParaphraseAttack_Dipper",
                     (
@@ -446,6 +419,23 @@ class ParaphraseAttack(Attack):
                         None,
                         True,
                         False,
+                        None,
+                        1.0,
+                        1.0,
+                        None,
+                        None,
+                        "fr",
+                    ),
+                ),
+                (
+                    "ParaphraseAttack_CustomModel",
+                    (
+                        "default",
+                        None,
+                        None,
+                        False,
+                        False,
+                        "path/to/custom/model",
                         1.0,
                         1.0,
                         None,
@@ -464,6 +454,7 @@ class ParaphraseAttack(Attack):
                         None,
                         False,
                         True,
+                        None,
                         1.0,
                         1.0,
                         None,
@@ -479,6 +470,7 @@ class ParaphraseAttack(Attack):
                         None,
                         False,
                         True,
+                        None,
                         1.0,
                         1.0,
                         None,
@@ -501,7 +493,15 @@ class ParaphraseAttack(Attack):
             return self._query_google_translate(text)
         if self._dipper:
             return self._run_dipper(text)
+        if self._custom_model_path is not None:
+            return self._query_custom_model(text)
         raise NotImplementedError("No model specified!")
+
+    def _query_custom_model(self, text: str) -> str:
+        if self._queue is None:
+            raise NotImplementedError("Custom model requires queue-based processing")
+        self._queue["custom_model"].put((text, self._resp_queue))
+        return self._resp_queue.get(block=True)
 
 
 # _TEST_TEXT = """

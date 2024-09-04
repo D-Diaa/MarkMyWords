@@ -27,3 +27,6 @@ results: 'results'
 threshold: 0.8
 hull_axis: [['generator', 'rng']]
 aggregate_thresholds: [[0.02, 1], [0.1, 1], [0.02, 0.8], [0.1, 0.8], [0.02, -1], [0.1, -1]]
+
+# Custom model parameter
+custom_model_path: 'path/to/your/custom/model'

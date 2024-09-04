@@ -5,6 +5,7 @@ import math
 import tiktoken
 import torch
 from openai import OpenAI
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 openai_cache = {}
 
@@ -259,6 +260,27 @@ def dipper_server(queue, devices):
 
         texts, destination_queue = task
         destination_queue.put(call_dipper(model, tokenizer, texts, device))
+
+
+def custom_model_process(custom_model_queue, model_path, device):
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(device)
+    model = AutoModelForCausalLM.from_pretrained(model_path).to(device)
+    tokenizer = AutoTokenizer.from_pretrained(model_path)
+    model.eval()
+
+    while True:
+        task = custom_model_queue.get(block=True)
+        if task is None:
+            return
+
+        text, destination_queue = task
+        input_ids = tokenizer.encode(text, return_tensors="pt").to(device)
+        
+        with torch.no_grad():
+            output = model.generate(input_ids, max_length=len(input_ids[0]) + 50, num_return_sequences=1, temperature=0.7)
+        
+        paraphrased_text = tokenizer.decode(output[0], skip_special_tokens=True)
+        destination_queue.put(paraphrased_text)
 
 
 def translate_process(translation_queue, langs, device):
