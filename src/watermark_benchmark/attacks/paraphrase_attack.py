@@ -56,9 +56,9 @@ class ParaphraseAttack(Attack):
             paraphrase_method: str = "default",
             hf_model: str | None = None,
             openai_model: str | None = None,
-            dipper_model: bool = False,
+            use_dipper: bool = False,
             use_google_translate: bool = False,
-            custom_model_path: str | None = None,
+            use_custom_model: bool = False,
             temperature: float = 1.0,
             top_p: float = 1.0,
             presence_penalty: float | None = None,
@@ -95,9 +95,9 @@ class ParaphraseAttack(Attack):
         self._paraphrase_method = paraphrase_method
         self._hf_model = hf_model
         self._openai_model = openai_model
-        self._dipper = dipper_model
+        self._dipper = use_dipper
         self._use_google_translate = use_google_translate
-        self._custom_model_path = custom_model_path
+        self.use_custom_model = use_custom_model
 
         # Sampling params
         self._temperature = temperature
@@ -110,7 +110,7 @@ class ParaphraseAttack(Attack):
             self._is_chat = "gpt" in self._openai_model
 
         # Only one model can be used at a time
-        models = [hf_model, openai_model, use_google_translate, dipper_model, custom_model_path]
+        models = [hf_model, openai_model, use_google_translate, use_dipper, use_custom_model]
         num_models = sum(
             int(model is not None and model is not False) for model in models
         )
@@ -395,22 +395,22 @@ class ParaphraseAttack(Attack):
         """See Attack.get_param_list."""
         if not reduced:
             return [
-                (
-                    "ParaphraseAttack_GPT3.5",
-                    (
-                        "default",
-                        None,
-                        "gpt-3.5-turbo",
-                        False,
-                        False,
-                        None,
-                        1.0,
-                        1.0,
-                        None,
-                        None,
-                        "fr",
-                    ),
-                ),
+                # (
+                #     "ParaphraseAttack_GPT3.5",
+                #     (
+                #         "default",
+                #         None,
+                #         "gpt-3.5-turbo",
+                #         False,
+                #         False,
+                #         None,
+                #         1.0,
+                #         1.0,
+                #         None,
+                #         None,
+                #         "fr",
+                #     ),
+                # ),
                 (
                     "ParaphraseAttack_Dipper",
                     (
@@ -419,7 +419,7 @@ class ParaphraseAttack(Attack):
                         None,
                         True,
                         False,
-                        None,
+                        False,
                         1.0,
                         1.0,
                         None,
@@ -435,7 +435,7 @@ class ParaphraseAttack(Attack):
                         None,
                         False,
                         False,
-                        "path/to/custom/model",
+                        True,
                         1.0,
                         1.0,
                         None,
@@ -454,7 +454,7 @@ class ParaphraseAttack(Attack):
                         None,
                         False,
                         True,
-                        None,
+                        False,
                         1.0,
                         1.0,
                         None,
@@ -470,7 +470,7 @@ class ParaphraseAttack(Attack):
                         None,
                         False,
                         True,
-                        None,
+                        False,
                         1.0,
                         1.0,
                         None,
@@ -493,7 +493,7 @@ class ParaphraseAttack(Attack):
             return self._query_google_translate(text)
         if self._dipper:
             return self._run_dipper(text)
-        if self._custom_model_path is not None:
+        if self.use_custom_model is not None:
             return self._query_custom_model(text)
         raise NotImplementedError("No model specified!")
 

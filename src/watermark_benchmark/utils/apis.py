@@ -7,6 +7,8 @@ import torch
 from openai import OpenAI
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+from watermark_benchmark.utils.standardize import standardize
+
 openai_cache = {}
 
 _MAX_TOKENS_BY_MODEL = {
@@ -262,25 +264,36 @@ def dipper_server(queue, devices):
         destination_queue.put(call_dipper(model, tokenizer, texts, device))
 
 
-def custom_model_process(custom_model_queue, model_path, device):
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(device)
+def custom_model_process(custom_model_queue, model_path, devices, config):
+    os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(str(i) for i in devices)
+    device = "cuda" if len(devices) else "cpu"
     model = AutoModelForCausalLM.from_pretrained(model_path).to(device)
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     model.eval()
-
+    custom_gen_kwargs = {
+        "temperature": config.custom_temperature,
+        "do_sample":True,
+        "max_new_tokens": config.custom_max_new_tokens,
+    }
+    system_prompt = """
+        You are an expert copy-editor. Please rewrite the following text in your own voice and paraphrase all sentences.\n Ensure that the final output contains the same information as the original text and has roughly the same length. \n Do not leave out any important details when rewriting in your own voice. Do not include any information that is not present in the original text. Do not respond with a greeting or any other extraneous information. Skip the preamble. Just rewrite the text directly.
+    """
+    instruction = "Paraphrase the following text:\n[[START OF TEXT]]\n{}\n[[END OF TEXT]]"
     while True:
         task = custom_model_queue.get(block=True)
-        if task is None:
-            return
-
         text, destination_queue = task
-        input_ids = tokenizer.encode(text, return_tensors="pt").to(device)
-        
+        prompt = standardize(model.config.name_or_path, system_prompt, instruction.format(text))
+        prompts = [prompt] * config.custom_batch
+        input_ids = tokenizer(prompts, return_tensors='pt').to(device)
         with torch.no_grad():
-            output = model.generate(input_ids, max_length=len(input_ids[0]) + 50, num_return_sequences=1, temperature=0.7)
-        
-        paraphrased_text = tokenizer.decode(output[0], skip_special_tokens=True)
-        destination_queue.put(paraphrased_text)
+            outputs = model.generate(**input_ids, pad_token_id=tokenizer.eos_token_id, **custom_gen_kwargs)
+        paraphrased = []
+        for i, output in enumerate(outputs):
+            # remove padding from input ids
+            output = output[len(input_ids["input_ids"][i]):]
+            paraphrased_text = tokenizer.decode(output, skip_special_tokens=True)
+            paraphrased.append(paraphrased_text)
+        destination_queue.put(paraphrased)
 
 
 def translate_process(translation_queue, langs, device):

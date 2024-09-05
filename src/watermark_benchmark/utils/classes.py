@@ -537,7 +537,9 @@ class ConfigSpec:
     openai_parallelism: Optional[int] = 32
 
     custom_model_path: Optional[str] = None  # New field for custom model path
-
+    custom_batch: Optional[int] = 8
+    custom_temperature: Optional[float] = 1.0
+    custom_max_new_tokens: Optional[int] = 1024
     code_config: ConfigCode = ConfigCode()
 
     def get_devices(self):

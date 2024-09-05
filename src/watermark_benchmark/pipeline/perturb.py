@@ -15,6 +15,7 @@ from watermark_benchmark.utils import (
     load_config,
     setup_randomness,
 )
+from watermark_benchmark.utils.apis import custom_model_process
 from watermark_benchmark.utils.classes import Generation
 
 
@@ -122,13 +123,16 @@ def perturb_process(
         else:
             setup_randomness(config)
             attack = attack_list[attack_name]
-            generation = replace(
-                generation,
-                response=attack.warp(generation.response, generation.prompt),
-                attack=attack_name,
-            )
-            writer_queue.put(generation)
-
+            response = attack.warp(generation.response, generation.prompt)
+            if isinstance(response, str):
+                response = [response]
+            for r in response:
+                generation = replace(
+                    generation,
+                    response=r,
+                    attack=attack_name,
+                )
+                writer_queue.put(generation)
 
 def writer_process(queue, config, w_count):
     """
@@ -209,7 +213,7 @@ def run(config_file, generations=None):
     processes = []
     tasks = []
     task_count = 0
-
+    unique_attacks = set()
     # for generation in tqdm(generations, total=len(generations), desc="Preparing tasks"):
     for generation in generations:
         wid, gid = (
@@ -228,7 +232,11 @@ def run(config_file, generations=None):
         for attack in attack_list:
             if str((wid, gid, attack)) not in existing:
                 tasks.append((attack, generation))
-                task_count += 1
+                unique_attacks.add(attack.lower())
+                if "custom" in attack.lower():
+                    task_count+=config.custom_batch
+                else:
+                    task_count += 1
 
     if not task_count:
         return
@@ -241,17 +249,34 @@ def run(config_file, generations=None):
     )
     if config.paraphrase:
         devices = config.get_devices()
-        for i in range(config.dipper_processes):
-            processes.append(
-                multiprocessing.Process(
-                    target=dipper_server,
-                    args=(
-                        dipper_queue,
-                        [devices[i % len(devices)]] if len(devices) else [],
-                    ),
+        if any("dipper" in attack for attack in unique_attacks):
+            for i in range(config.dipper_processes):
+                processes.append(
+                    multiprocessing.Process(
+                        target=dipper_server,
+                        args=(
+                            dipper_queue,
+                            [devices[i % len(devices)]] if len(devices) else [],
+                        ),
+                    )
                 )
-            )
-            processes[-1].start()
+                processes[-1].start()
+
+        # Setup custom model process
+        if any("custom" in attack for attack in unique_attacks) and config.custom_model_path:
+            for i in range(config.custom_processes):
+                processes.append(
+                    multiprocessing.Process(
+                        target=custom_model_process,
+                        args=(
+                            custom_model_queue,
+                            config.custom_model_path,
+                            [devices[i % len(devices)]] if len(devices) else [],
+                            config
+                        ),
+                    )
+                )
+                processes[-1].start()
 
     for d in config.get_devices():
         process_count = (
@@ -281,25 +306,18 @@ def run(config_file, generations=None):
     openai_queue = global_manager.Queue()
     openai_cache = global_manager.dict()
     if config.paraphrase:
-        for i in range(config.openai_processes):
-            processes.append(
-                multiprocessing.Process(
-                    target=openai_process,
-                    args=(openai_queue, config.openai_key, openai_cache),
+        if config.openai_key:
+            for i in range(config.openai_processes):
+                processes.append(
+                    multiprocessing.Process(
+                        target=openai_process,
+                        args=(openai_queue, config.openai_key, openai_cache),
+                    )
                 )
-            )
-            processes[-1].start()
-
-    # Setup custom model process
-    if config.custom_model_path:
-        for d in config.get_devices():
-            processes.append(
-                multiprocessing.Process(
-                    target=custom_model_process,
-                    args=(custom_model_queue, config.custom_model_path, d),
-                )
-            )
-            processes[-1].start()
+                processes[-1].start()
+        else:
+            if any("gpt" in attack for attack in unique_attacks):
+                raise ValueError("OpenAI API key is required for GPT-3 paraphrasing.")
 
     # Setup dispatch process
     dispatch_queues = {
