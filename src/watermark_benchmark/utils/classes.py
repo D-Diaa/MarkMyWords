@@ -540,6 +540,10 @@ class ConfigSpec:
     custom_batch: Optional[int] = 8
     custom_temperature: Optional[float] = 1.0
     custom_max_new_tokens: Optional[int] = 1024
+    prompt_dataset_hf: Optional[str] = None
+    prompt_dataset_column: Optional[str] = None
+    prompt_dataset_split: Optional[str] = None
+    prompt_dataset_size: Optional[int] = None
     code_config: ConfigCode = ConfigCode()
 
     def get_devices(self):

@@ -12,8 +12,16 @@ from watermark_benchmark.utils.classes import Generation, WatermarkSpec
 def gen_wrapper(config, watermarks, custom_builder=None):
     config.baseline = True
     from watermark_benchmark.pipeline.generate import run as gen_run
-
-    gen_run(config, watermarks, custom_builder)
+    from datasets import load_dataset
+    system_prompt =  "You are a helpful assistant. Always answer in the most accurate way."
+    if config.prompt_dataset_hf is not None and len(config.prompt_dataset_hf) > 0:
+        dataset = load_dataset(config.prompt_dataset_hf)
+        prompts = dataset[config.prompt_dataset_split][config.prompt_dataset_column]
+        prompts = prompts[:config.prompt_dataset_size]
+        prompts = [(prompt, system_prompt) for prompt in prompts]
+        gen_run(config, watermarks, custom_builder, raw_prompts=prompts)
+    else:
+        gen_run(config, watermarks, custom_builder)
 
 
 def detect_wrapper(config, generations, custom_builder=None):
