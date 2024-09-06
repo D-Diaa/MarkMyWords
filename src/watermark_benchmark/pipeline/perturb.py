@@ -225,8 +225,7 @@ def run(config_file, generations=None):
             tasks.append((None, generation))
             task_count += 1
 
-        # Only perturb 100 generations
-        if generation.id % 100 > 33 or generation.watermark is None:
+        if generation.watermark is None:
             continue
 
         for attack in attack_list:
