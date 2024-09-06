@@ -208,7 +208,8 @@ def run(config_file, generations=None):
 
     # Count attacks
     attack_list = init_attacks(config, names_only=True)
-
+    if config.custom_only:
+        attack_list = {k: v for k, v in attack_list.items() if "custom" in k.lower()}
     global_manager = multiprocessing.Manager()
     processes = []
     tasks = []
@@ -277,26 +278,27 @@ def run(config_file, generations=None):
                 )
                 processes[-1].start()
 
-    for d in config.get_devices():
-        process_count = (
-            int(
-                math.floor(
-                    torch.cuda.get_device_properties(d).total_memory
-                    / 2000000000
+    if not config.custom_only:
+        for d in config.get_devices():
+            process_count = (
+                int(
+                    math.floor(
+                        torch.cuda.get_device_properties(d).total_memory
+                        / 2000000000
+                    )
                 )
+                if d != "cpu"
+                else 1
             )
-            if d != "cpu"
-            else 1
-        )
-        for _ in range(process_count):
-            processes.append(
-                multiprocessing.Process(
-                    target=translate_process,
-                    args=(translate_queue, ["en", "fr", "ru"], d),
+            for _ in range(process_count):
+                processes.append(
+                    multiprocessing.Process(
+                        target=translate_process,
+                        args=(translate_queue, ["en", "fr", "ru"], d),
+                    )
                 )
-            )
-            processes[-1].start()
-            time.sleep(5)
+                processes[-1].start()
+                time.sleep(5)
 
     # Setup synonym cache
     synonym_cache = global_manager.dict()
@@ -305,18 +307,19 @@ def run(config_file, generations=None):
     openai_queue = global_manager.Queue()
     openai_cache = global_manager.dict()
     if config.paraphrase:
-        if config.openai_key:
-            for i in range(config.openai_processes):
-                processes.append(
-                    multiprocessing.Process(
-                        target=openai_process,
-                        args=(openai_queue, config.openai_key, openai_cache),
+        if not config.custom_only:
+            if config.openai_key:
+                for i in range(config.openai_processes):
+                    processes.append(
+                        multiprocessing.Process(
+                            target=openai_process,
+                            args=(openai_queue, config.openai_key, openai_cache),
+                        )
                     )
-                )
-                processes[-1].start()
-        else:
-            if any("gpt" in attack for attack in unique_attacks):
-                raise ValueError("OpenAI API key is required for GPT-3 paraphrasing.")
+                    processes[-1].start()
+            else:
+                if any("gpt" in attack for attack in unique_attacks):
+                    raise ValueError("OpenAI API key is required for GPT-3 paraphrasing.")
 
     # Setup dispatch process
     dispatch_queues = {

@@ -11,18 +11,18 @@ huffman_coding: 'static_data/encodings/llama_2_encoding.tsv'
 
 # Perturb parameters
 paraphrase: True
-dipper_processes: 1
-custom_processes: 1
+dipper_processes: 0
+custom_processes: 2
 openai_processes: 0
-translate_processes: 32
+translate_processes: 0
 openai_key: '' 
 threads: 32
 misspellings: 'static_data/misspellings.json' 
-devices: [0]
+devices: [0,1]
+gpu_memory_utilization: 0.95
 
 # Detect parameters
-detect_threads: 1
-
+detections_per_gpu: 4
 # Summarize parameter
 results: 'results'
 threshold: 0.8
@@ -31,10 +31,11 @@ aggregate_thresholds: [[0.02, 1], [0.1, 1], [0.02, 0.8], [0.1, 0.8], [0.02, -1],
 
 # Custom model parameter
 custom_model_path: 'mistralai/Mistral-7B-Instruct-v0.1'
-custom_batch: 8
-custom_temperature: 0.7
+custom_batch: 12
+custom_temperature: 0.95
 custom_max_new_tokens: 2048
-prompt_dataset_hf: "DIBT/10k_prompts_ranked"
+custom_only: True
+prompt_dataset_hf: "train"
 prompt_dataset_split: "train"
 prompt_dataset_column: "prompt"
 prompt_dataset_size: 100
