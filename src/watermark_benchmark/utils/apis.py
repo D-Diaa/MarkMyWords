@@ -274,6 +274,7 @@ def custom_model_process(custom_model_queue, model_path, devices, config):
         "temperature": config.custom_temperature,
         "do_sample":True,
         "max_new_tokens": config.custom_max_new_tokens,
+        "num_return_sequences": config.custom_batch,
     }
     system_prompt = """
         You are an expert copy-editor. Please rewrite the following text in your own voice and paraphrase all sentences.\n Ensure that the final output contains the same information as the original text and has roughly the same length. \n Do not leave out any important details when rewriting in your own voice. Do not include any information that is not present in the original text. Do not respond with a greeting or any other extraneous information. Skip the preamble. Just rewrite the text directly.
@@ -283,17 +284,18 @@ def custom_model_process(custom_model_queue, model_path, devices, config):
         task = custom_model_queue.get(block=True)
         text, destination_queue = task
         prompt = standardize(model.config.name_or_path, system_prompt, instruction.format(text))
-        prompts = [prompt] * config.custom_batch
-        input_ids = tokenizer(prompts, return_tensors='pt').to(device)
+        input_ids = tokenizer(prompt, return_tensors='pt').to(device)
         with torch.no_grad():
             outputs = model.generate(**input_ids, pad_token_id=tokenizer.eos_token_id, **custom_gen_kwargs)
         paraphrased = []
         for i, output in enumerate(outputs):
             # remove padding from input ids
-            output = output[len(input_ids["input_ids"][i]):]
+            output = output[len(input_ids["input_ids"][0]):]
             paraphrased_text = tokenizer.decode(output, skip_special_tokens=True)
             paraphrased.append(paraphrased_text)
         destination_queue.put(paraphrased)
+        # clear memory
+        torch.cuda.empty_cache()
 
 
 def translate_process(translation_queue, langs, device):
