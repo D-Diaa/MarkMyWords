@@ -5,8 +5,9 @@ import math
 import tiktoken
 import torch
 from openai import OpenAI
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from vllm import LLM, SamplingParams
 
+from watermark_benchmark.utils import get_server_args
 from watermark_benchmark.utils.standardize import standardize
 
 openai_cache = {}
@@ -266,16 +267,15 @@ def dipper_server(queue, devices):
 
 def custom_model_process(custom_model_queue, model_path, devices, config):
     os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(str(i) for i in devices)
-    device = "cuda" if len(devices) else "cpu"
-    model = AutoModelForCausalLM.from_pretrained(model_path).to(device)
-    tokenizer = AutoTokenizer.from_pretrained(model_path)
-    model.eval()
-    custom_gen_kwargs = {
-        "temperature": config.custom_temperature,
-        "do_sample":True,
-        "max_new_tokens": config.custom_max_new_tokens,
-        "num_return_sequences": config.custom_batch,
-    }
+    # device = "cuda" if len(devices) else "cpu"
+    model_kwargs = get_server_args(config)
+    model_kwargs["max_model_len"] = config.max_new_tokens * 2
+    server = LLM(model_path,  **model_kwargs)
+    gen_params = SamplingParams(
+        temperature=config.custom_temperature,
+        max_tokens=config.max_new_tokens,
+        n=config.custom_batch,
+    )
     system_prompt = """
         You are an expert copy-editor. Please rewrite the following text in your own voice and paraphrase all sentences.\n Ensure that the final output contains the same information as the original text and has roughly the same length. \n Do not leave out any important details when rewriting in your own voice. Do not include any information that is not present in the original text. Do not respond with a greeting or any other extraneous information. Skip the preamble. Just rewrite the text directly.
     """
@@ -283,18 +283,12 @@ def custom_model_process(custom_model_queue, model_path, devices, config):
     while True:
         task = custom_model_queue.get(block=True)
         text, destination_queue = task
-        prompt = standardize(model.config.name_or_path, system_prompt, instruction.format(text))
-        input_ids = tokenizer(prompt, return_tensors='pt').to(device)
-        with torch.no_grad():
-            outputs = model.generate(**input_ids, pad_token_id=tokenizer.eos_token_id, **custom_gen_kwargs)
+        prompt = standardize(model_path, system_prompt, instruction.format(text))
+        output = server.generate([prompt], gen_params, use_tqdm=False)[0]
         paraphrased = []
-        for i, output in enumerate(outputs):
-            # remove padding from input ids
-            output = output[len(input_ids["input_ids"][0]):]
-            paraphrased_text = tokenizer.decode(output, skip_special_tokens=True)
-            paraphrased.append(paraphrased_text)
+        for output_text in output.outputs:
+            paraphrased.append(output_text.text.strip())
         destination_queue.put(paraphrased)
-        # clear memory
         torch.cuda.empty_cache()
 
 
