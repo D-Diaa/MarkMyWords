@@ -7,6 +7,7 @@ from dataclasses import replace
 from watermark_benchmark.pipeline.summarize import run as summary_run
 from watermark_benchmark.utils import load_config
 from watermark_benchmark.utils.classes import Generation, WatermarkSpec
+from watermark_benchmark.utils.generation_prompts_train import get_random_prompts
 
 
 def gen_wrapper(config, watermarks, custom_builder=None):
@@ -15,10 +16,13 @@ def gen_wrapper(config, watermarks, custom_builder=None):
     from datasets import load_dataset
     system_prompt =  "You are a helpful assistant. Always answer in the most accurate way."
     if config.prompt_dataset_hf is not None and len(config.prompt_dataset_hf) > 0:
-        dataset = load_dataset(config.prompt_dataset_hf)
-        prompts = dataset[config.prompt_dataset_split][config.prompt_dataset_column]
-        prompts = prompts[:config.prompt_dataset_size]
-        prompts = [(prompt, system_prompt) for prompt in prompts]
+        if config.prompt_dataset_hf == "train":
+            prompts = get_random_prompts(config.prompt_dataset_size)
+        else:
+            dataset = load_dataset(config.prompt_dataset_hf)
+            prompts = dataset[config.prompt_dataset_split][config.prompt_dataset_column]
+            prompts = prompts[:config.prompt_dataset_size]
+            prompts = [(prompt, system_prompt) for prompt in prompts]
         gen_run(config, watermarks, custom_builder, raw_prompts=prompts)
     else:
         gen_run(config, watermarks, custom_builder)
