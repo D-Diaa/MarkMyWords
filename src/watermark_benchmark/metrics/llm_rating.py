@@ -105,7 +105,8 @@ class LLMRating(RatingMetric):
                     )
                     task = tokenizer.decode(encoded_task[:max_token_length])
             tasks[i] = task
-
+        if not len(tasks):
+            return
         # Run model
         outputs = server.run(tasks, config, 0.0, use_tqdm=True)
 
