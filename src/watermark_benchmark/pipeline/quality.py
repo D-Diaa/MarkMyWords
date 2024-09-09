@@ -146,7 +146,9 @@ def run(config_file, generations=None):
                )
                in local_settings
         ]
-        if len(local_tasks)>0 and len(devices) > 1:
+        if len(devices) > 1:
+            if len(local_tasks) == 0:
+                continue
             processes.append(
                 multiprocessing.Process(
                     target=rating_process,
