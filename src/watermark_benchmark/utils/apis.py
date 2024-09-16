@@ -5,10 +5,10 @@ import math
 import tiktoken
 import torch
 from openai import OpenAI
+from transformers import AutoTokenizer
 from vllm import LLM, SamplingParams
 
 from watermark_benchmark.utils import get_server_args
-from watermark_benchmark.utils.standardize import standardize
 
 openai_cache = {}
 
@@ -271,6 +271,7 @@ def custom_model_process(custom_model_queue, model_path, devices, config):
     model_kwargs = get_server_args(config)
     model_kwargs["max_model_len"] = config.max_new_tokens * 2
     server = LLM(model_path,  **model_kwargs)
+    tokenizer = AutoTokenizer.from_pretrained(model_path)
     gen_params = SamplingParams(
         temperature=config.custom_temperature,
         max_tokens=config.max_new_tokens,
@@ -280,10 +281,21 @@ def custom_model_process(custom_model_queue, model_path, devices, config):
         You are an expert copy-editor. Please rewrite the following text in your own voice and paraphrase all sentences.\n Ensure that the final output contains the same information as the original text and has roughly the same length. \n Do not leave out any important details when rewriting in your own voice. Do not include any information that is not present in the original text. Do not respond with a greeting or any other extraneous information. Skip the preamble. Just rewrite the text directly.
     """
     instruction = "Paraphrase the following text:\n[[START OF TEXT]]\n{}\n[[END OF TEXT]]"
+    response = "[[START OF PARAPHRASE]]\n"
+
     while True:
         task = custom_model_queue.get(block=True)
         text, destination_queue = task
-        prompt = standardize(model_path, system_prompt, instruction.format(text))
+        prompt = tokenizer.apply_chat_template(
+            [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": instruction.format(text)},
+                {"role": "assistant", "content": response},
+            ],
+            tokenize=False,
+            add_generation_prompt=False,
+            continue_final_message = True
+        )
         output = server.generate([prompt], gen_params, use_tqdm=False)[0]
         paraphrased = []
         for output_text in output.outputs:

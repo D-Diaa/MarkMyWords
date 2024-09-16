@@ -6,6 +6,7 @@ import sys
 from dataclasses import replace
 
 from tqdm import tqdm
+from transformers import AutoTokenizer
 
 from watermark_benchmark.utils import (
     get_output_file,
@@ -133,7 +134,6 @@ def run(
         watermarks (list): A list of watermarks to use for generating the watermarked text.
     """
     from watermark_benchmark.utils.classes import Generation, WatermarkSpec
-    from watermark_benchmark.utils.standardize import standardize
 
     # Load config
     if isinstance(config_file, str):
@@ -154,7 +154,17 @@ def run(
             ]
 
     # Generate tasks
-    prompts = [standardize(config.model, s, p) for p, s in raw_prompts]
+    tokenizer = AutoTokenizer.from_pretrained(config.model)
+    prompts = [tokenizer.apply_chat_template([
+        {
+            "role": "system",
+            "content": s,
+        },
+        {
+            "role": "user",
+            "content": p,
+        },
+    ], tokenize=False, add_generation_prompt=True) for p, s in raw_prompts]
 
     unique_temps, tasks = set(), []
     for watermark in watermarks:
