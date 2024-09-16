@@ -290,12 +290,10 @@ def custom_model_process(custom_model_queue, model_path, devices, config):
             [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": instruction.format(text)},
-                {"role": "assistant", "content": response},
             ],
             tokenize=False,
-            add_generation_prompt=False,
-            continue_final_message = True
-        )
+            add_generation_prompt=True,
+        ) + response
         output = server.generate([prompt], gen_params, use_tqdm=False)[0]
         paraphrased = []
         for output_text in output.outputs:

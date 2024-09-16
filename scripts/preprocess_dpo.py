@@ -49,13 +49,14 @@ def create_dpo_dataset(input_file: str, output_dir: str, model_family: str = "mi
 
             chosen = max(valid_paraphrases, key=lambda g: g.pvalue)
             rejected = min(paraphrases, key=lambda g: g.pvalue)
-            prompt = tokenizer.apply_chat_template([{
-                "role": "system", "content": system_prompt
-            }, {
-                "role": "user", "content": instruction.format(no_attack[0].response)
-            }, {
-                "role": "assistant", "content": response
-            }], tokenize=False, add_generation_prompt=False, continue_final_message=True)
+            prompt = tokenizer.apply_chat_template(
+                [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": instruction.format(no_attack[0].response)}
+            ],
+                tokenize=False,
+                add_generation_prompt=True
+            )+response
             dpo_data.append({
                 'prompt': prompt,
                 'chosen': response_fmt.format(chosen.response),
