@@ -124,10 +124,10 @@ def run(config_file, generations=None):
     global_manager = multiprocessing.Manager()
     processes = []
     writer_queue = global_manager.Queue()
-
+    num_processes = min(len(devices), len(settings))
     writer = multiprocessing.Process(
         target=writer_process,
-        args=(writer_queue, config, len(config.get_devices())),
+        args=(writer_queue, config, num_processes),
     )
     writer.start()
 

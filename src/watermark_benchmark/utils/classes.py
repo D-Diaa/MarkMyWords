@@ -503,6 +503,7 @@ class ConfigSpec:
     dipper_processes: int = 1
     openai_processes: int = 1
     custom_processes: int = 1
+    translate_processes: int = 1
     custom_only: bool = False
     openai_key: Optional[str] = None
     threads: int = 32

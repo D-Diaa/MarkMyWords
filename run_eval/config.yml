@@ -4,7 +4,7 @@ model: 'meta-llama/Llama-2-13b-chat-hf'
 engine: 'vllm'
 output: 'generation_results'
 watermark: 'watermark_specs'
-max_new_tokens: 1024
+max_new_tokens: 512
 distributed: False
 
 seed: 0
@@ -12,18 +12,18 @@ huffman_coding: 'static_data/encodings/llama_2_encoding.tsv'
 
 # Perturb parameters
 paraphrase: True
-dipper_processes: 0
-custom_processes: 2
-openai_processes: 0
-translate_processes: 0
-openai_key: '' 
-threads: 64
+dipper_processes: 1
+custom_processes: 0
+openai_processes: 1 # not more than that
+translate_processes: 4 # not more than that (per GPU)
+openai_key: ''
+threads: 32
 misspellings: 'static_data/misspellings.json' 
-devices: [0,1,2,3]
+devices: [0]
 gpu_memory_utilization: 0.95
 
 # Detect parameters
-detections_per_gpu: 32
+detections_per_gpu: 16 # not more than that
 # Summarize parameter
 results: 'results'
 threshold: 0.8
@@ -31,11 +31,11 @@ hull_axis: [['generator', 'rng']]
 aggregate_thresholds: [[0.02, 1], [0.1, 1], [0.02, 0.8], [0.1, 0.8], [0.02, -1], [0.1, -1]]
 
 # Custom model parameter
-custom_model_paths: ['dpo_mistral_all', 'dpo_mistral_distributionshift', 'dpo_mistral_its', 'dpo_mistral_binary', 'dpo_mistral_exponential']
+custom_model_paths: []
 custom_batch: 1
 custom_temperature: 1.0
-custom_max_new_tokens: 2048
-custom_only: True
+custom_max_new_tokens: 512
+custom_only: False
 prompt_dataset_hf: ""
 prompt_dataset_split: "train"
 prompt_dataset_column: "prompt"

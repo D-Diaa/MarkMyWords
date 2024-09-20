@@ -5,7 +5,6 @@ import sys
 import time
 from dataclasses import replace
 
-import math
 from tqdm import tqdm
 
 from watermark_benchmark.attacks.helm_attacks import setup
@@ -182,7 +181,6 @@ def run(config_file, generations=None):
     Returns:
         None
     """
-    import torch
 
     from watermark_benchmark.utils.apis import (
         dipper_server,
@@ -295,17 +293,7 @@ def run(config_file, generations=None):
 
     if not config.custom_only:
         for d in config.get_devices():
-            process_count = (
-                int(
-                    math.floor(
-                        torch.cuda.get_device_properties(d).total_memory
-                        / 2000000000
-                    )
-                )
-                if d != "cpu"
-                else 1
-            )
-            for _ in range(process_count):
+            for _ in range(config.translate_processes):
                 processes.append(
                     multiprocessing.Process(
                         target=translate_process,
@@ -313,7 +301,7 @@ def run(config_file, generations=None):
                     )
                 )
                 processes[-1].start()
-                time.sleep(5)
+                time.sleep(2)
 
     # Setup synonym cache
     synonym_cache = global_manager.dict()
