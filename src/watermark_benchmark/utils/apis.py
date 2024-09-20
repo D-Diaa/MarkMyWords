@@ -1,3 +1,4 @@
+import json
 import os
 import time
 
@@ -7,6 +8,7 @@ import torch
 from openai import OpenAI
 from transformers import AutoTokenizer
 from vllm import LLM, SamplingParams
+from vllm.lora.request import LoRARequest
 
 from watermark_benchmark.utils import get_server_args
 
@@ -270,7 +272,19 @@ def custom_model_process(custom_model_queue, model_path, devices, config):
     # device = "cuda" if len(devices) else "cpu"
     model_kwargs = get_server_args(config)
     model_kwargs["max_model_len"] = config.max_new_tokens + config.custom_max_new_tokens + 512 # 512 is a buffer for system prompt
-    server = LLM(model_path,  **model_kwargs)
+    adapter_path = None
+    if (model_path is not None and
+            os.path.exists(os.path.join(model_path, "adapter_config.json")) and
+            not os.path.exists(os.path.join(model_path, "config.json"))):
+        print(f"Loading base and then generating from adapter '{model_path}'")
+        adapter_path = model_path
+        adapter_config = json.load(open(os.path.join(model_path, "adapter_config.json")))
+        base_path = adapter_config.setdefault("base_model_name_or_path", "?")
+        model_path = base_path
+    lora_request = None
+    if adapter_path is not None:
+        lora_request = LoRARequest(adapter_path, devices[0]+1, adapter_path)
+    server = LLM(model_path, enable_lora = (adapter_path is not None),  **model_kwargs)
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     gen_params = SamplingParams(
         temperature=config.custom_temperature,
@@ -298,7 +312,7 @@ def custom_model_process(custom_model_queue, model_path, devices, config):
             tokenize=False,
             add_generation_prompt=True,
         ) + response
-        output = server.generate([prompt], gen_params, use_tqdm=False)[0]
+        output = server.generate([prompt], gen_params, use_tqdm=False, lora_request=lora_request)[0]
         paraphrased = []
         for output_text in output.outputs:
             paraphrased.append(output_text.text.strip())
