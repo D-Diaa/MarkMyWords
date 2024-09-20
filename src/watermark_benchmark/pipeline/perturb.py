@@ -48,13 +48,27 @@ def init_attacks(
 
     if config.paraphrase:
         for name, params in ParaphraseAttack.get_param_list(reduced=False):
-            attack_list[name] = (
-                ParaphraseAttack(
-                    *params, queue=dispatch_queue, resp_queue=results_queue
+            if "custom" in name.lower():
+                for model in config.custom_model_paths:
+                    params = list(params)
+                    params[6] = model
+                    attack_list[f"{model}_custom"] = (
+                        ParaphraseAttack(
+                            *params, queue=dispatch_queue, resp_queue=results_queue
+                        )
+                        if not names_only
+                        else True
+                    )
+            else:
+                attack_list[name] = (
+                    ParaphraseAttack(
+                        *params, queue=dispatch_queue, resp_queue=results_queue
+                    )
+                    if not names_only
+                    else True
                 )
-                if not names_only
-                else True
-            )
+        if config.custom_only:
+            attack_list = {k: v for k, v in attack_list.items() if "custom" in k.lower()}
         return attack_list
 
     # Helm attacks
@@ -208,15 +222,12 @@ def run(config_file, generations=None):
 
     # Count attacks
     attack_list = init_attacks(config, names_only=True)
-    if config.custom_only:
-        attack_list = {k: v for k, v in attack_list.items() if "custom" in k.lower()}
     global_manager = multiprocessing.Manager()
     processes = []
     tasks = []
     task_count = 0
     unique_attacks = set()
-    # for generation in tqdm(generations, total=len(generations), desc="Preparing tasks"):
-    for generation in generations:
+    for generation in tqdm(generations, total=len(generations), desc="Preparing tasks"):
         wid, gid = (
             generation.watermark.to_dict(True, True)
             if generation.watermark is not None
@@ -242,11 +253,13 @@ def run(config_file, generations=None):
         return
 
     # Setup dipper, google translate, and custom model processes
-    dipper_queue, translate_queue, custom_model_queue = (
-        global_manager.Queue(),
+    dipper_queue, translate_queue = (
         global_manager.Queue(),
         global_manager.Queue(),
     )
+    custom_model_queues = [
+        global_manager.Queue() for _ in range(len(config.custom_model_paths))
+    ]
     if config.paraphrase:
         devices = config.get_devices()
         if any("dipper" in attack for attack in unique_attacks):
@@ -263,20 +276,22 @@ def run(config_file, generations=None):
                 processes[-1].start()
 
         # Setup custom model process
-        if any("custom" in attack for attack in unique_attacks) and config.custom_model_path:
-            for i in range(config.custom_processes):
-                processes.append(
-                    multiprocessing.Process(
-                        target=custom_model_process,
-                        args=(
-                            custom_model_queue,
-                            config.custom_model_path,
-                            [devices[i % len(devices)]] if len(devices) else [],
-                            config
-                        ),
+        if any("custom" in attack for attack in unique_attacks) and len(config.custom_model_paths)!=0:
+            for j in range(len(config.custom_model_paths)):
+                for i in range(config.custom_processes):
+                    p_idx = (j*config.custom_processes+i) % len(devices)
+                    processes.append(
+                        multiprocessing.Process(
+                            target=custom_model_process,
+                            args=(
+                                custom_model_queues[j],
+                                config.custom_model_paths[j],
+                                [devices[p_idx]] if len(devices) else [],
+                                config
+                            ),
+                        )
                     )
-                )
-                processes[-1].start()
+                    processes[-1].start()
 
     if not config.custom_only:
         for d in config.get_devices():
@@ -326,8 +341,10 @@ def run(config_file, generations=None):
         "dipper": dipper_queue,
         "translate": translate_queue,
         "openai": openai_queue,
-        "custom_model": custom_model_queue,
     }
+    dispatch_queues.update({
+        f"{config.custom_model_paths[i]}_custom": custom_model_queues[i] for i in range(len(config.custom_model_paths))
+    })
 
     # Setup perturbation processes
     task_queue = global_manager.Queue()

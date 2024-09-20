@@ -59,6 +59,7 @@ class ParaphraseAttack(Attack):
             use_dipper: bool = False,
             use_google_translate: bool = False,
             use_custom_model: bool = False,
+            custom_model: str | None = None,
             temperature: float = 1.0,
             top_p: float = 1.0,
             presence_penalty: float | None = None,
@@ -98,7 +99,7 @@ class ParaphraseAttack(Attack):
         self._dipper = use_dipper
         self._use_google_translate = use_google_translate
         self.use_custom_model = use_custom_model
-
+        self._custom_model = custom_model
         # Sampling params
         self._temperature = temperature
         self._top_p = top_p
@@ -395,22 +396,23 @@ class ParaphraseAttack(Attack):
         """See Attack.get_param_list."""
         if not reduced:
             return [
-                # (
-                #     "ParaphraseAttack_GPT3.5",
-                #     (
-                #         "default",
-                #         None,
-                #         "gpt-3.5-turbo",
-                #         False,
-                #         False,
-                #         None,
-                #         1.0,
-                #         1.0,
-                #         None,
-                #         None,
-                #         "fr",
-                #     ),
-                # ),
+                (
+                    "ParaphraseAttack_GPT3.5",
+                    (
+                        "default",
+                        None,
+                        "gpt-3.5-turbo",
+                        False,
+                        False,
+                        False,
+                        None,
+                        1.0,
+                        1.0,
+                        None,
+                        None,
+                        "fr",
+                    ),
+                ),
                 (
                     "ParaphraseAttack_Dipper",
                     (
@@ -420,6 +422,7 @@ class ParaphraseAttack(Attack):
                         True,
                         False,
                         False,
+                        None,
                         1.0,
                         1.0,
                         None,
@@ -436,6 +439,7 @@ class ParaphraseAttack(Attack):
                         False,
                         False,
                         True,
+                        "custom_model",
                         1.0,
                         1.0,
                         None,
@@ -455,6 +459,7 @@ class ParaphraseAttack(Attack):
                         False,
                         True,
                         False,
+                        None,
                         1.0,
                         1.0,
                         None,
@@ -471,6 +476,7 @@ class ParaphraseAttack(Attack):
                         False,
                         True,
                         False,
+                        None,
                         1.0,
                         1.0,
                         None,
@@ -500,7 +506,7 @@ class ParaphraseAttack(Attack):
     def _query_custom_model(self, text: str) -> str:
         if self._queue is None:
             raise NotImplementedError("Custom model requires queue-based processing")
-        self._queue["custom_model"].put((text, self._resp_queue))
+        self._queue[f"{self._custom_model}_custom"].put((text, self._resp_queue))
         return self._resp_queue.get(block=True)
 
 
