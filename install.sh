@@ -1,9 +1,11 @@
 #!/bin/bash
 
-tar -xvf run/static_data/encodings.tar.gz
-tar -xvf run/static_data/selected.tar.gz
-mv encodings/ run/static_data/
-mv selected/ run/static_data/
+tar -xvf run_datagen/static_data/encodings.tar.gz
+tar -xvf run_datagen/static_data/selected.tar.gz
+cp -r encodings/ run_datagen/static_data/
+cp -r selected/ run_datagen/static_data/
+mv selected/ run_eval/static_data/
+mv encodings/ run_eval/static_data/
 
 git submodule init
 git submodule update
