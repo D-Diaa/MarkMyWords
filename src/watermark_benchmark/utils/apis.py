@@ -269,18 +269,22 @@ def custom_model_process(custom_model_queue, model_path, devices, config):
     os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(str(i) for i in devices)
     # device = "cuda" if len(devices) else "cpu"
     model_kwargs = get_server_args(config)
-    model_kwargs["max_model_len"] = config.max_new_tokens * 2
+    model_kwargs["max_model_len"] = config.max_new_tokens + config.custom_max_new_tokens + 512 # 512 is a buffer for system prompt
     server = LLM(model_path,  **model_kwargs)
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     gen_params = SamplingParams(
         temperature=config.custom_temperature,
-        max_tokens=config.max_new_tokens,
+        max_tokens=config.custom_max_new_tokens,
         n=config.custom_batch,
     )
-    system_prompt = """
-        You are an expert copy-editor. Please rewrite the following text in your own voice and paraphrase all sentences.\n Ensure that the final output contains the same information as the original text and has roughly the same length. \n Do not leave out any important details when rewriting in your own voice. Do not include any information that is not present in the original text. Do not respond with a greeting or any other extraneous information. Skip the preamble. Just rewrite the text directly.
-    """
-    instruction = "Paraphrase the following text:\n[[START OF TEXT]]\n{}\n[[END OF TEXT]]"
+    system_prompt = (
+        "You are an expert copy-editor. Please rewrite the following text in your own voice and paraphrase all sentences.\n"
+        "Ensure that the final output contains the same information as the original text and has roughly the same length.\n"
+        "Do not leave out any important details when rewriting in your own voice. Do not include any information that is not"
+        "present in the original text. Do not respond with a greeting or any other extraneous information. "
+        "Skip the preamble. Just rewrite the text directly."
+    )
+    instruction = "\n[[START OF TEXT]]\n{}\n[[END OF TEXT]]"
     response = "[[START OF PARAPHRASE]]\n"
 
     while True:
