@@ -31,7 +31,7 @@ hull_axis: [['generator', 'rng']]
 aggregate_thresholds: [[0.02, 1], [0.1, 1], [0.02, 0.8], [0.1, 0.8], [0.02, -1], [0.1, -1]]
 
 # Custom model parameter
-custom_model_path: ['dpo_mistral_all', 'dpo_mistral_distributionshift', 'dpo_mistral_its', 'dpo_mistral_binary', 'dpo_mistral_exponential']
+custom_model_paths: ['dpo_mistral_all', 'dpo_mistral_distributionshift', 'dpo_mistral_its', 'dpo_mistral_binary', 'dpo_mistral_exponential']
 custom_batch: 1
 custom_temperature: 1.0
 custom_max_new_tokens: 2048
