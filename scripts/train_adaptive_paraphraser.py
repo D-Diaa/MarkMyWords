@@ -17,72 +17,54 @@ python examples/scripts/dpo.py \
 
 # peft:
 python scripts/train_adaptive_paraphraser.py \
-    --dataset_name=/u1/a2diaa/repos/MarkMyWords/dpo_dataset/distributionshift/ \
-    --model_name_or_path=mistralai/Mistral-7B-Instruct-v0.1 \
-    --per_device_train_batch_size 4 \
+    --dataset_name=/home/ubuntu/MarkMyWords/dpo_dataset/distributionshift/ \
+    --model_name_or_path=mistralai/Mistral-7B-Instruct-v0.3 \
+    --per_device_train_batch_size 5 \
     --learning_rate 1e-3 \
     --gradient_accumulation_steps 1 \
-    --logging_steps 10 \
-    --eval_steps 500 \
-    --output_dir="dpo_mistral_ds" \
-    --optim rmsprop \
-    --warmup_steps 150 \
+    --logging_steps 1 \
+    --eval_steps 10 \
+    --output_dir="dpo_mistral_distributionshift" \
+    --warmup_steps 20 \
     --report_to wandb \
-    --bf16 \
     --logging_first_step \
     --no_remove_unused_columns \
     --use_peft \
-    --lora_r=16 \
+    --lora_r=64 \
     --lora_alpha=16 \
-    --sanity_check
+    --gradient_checkpointing=true \
+    --max_length=3072 \
+    --max_prompt_length=1536 \
+    --bf16 \
+    --eval_strategy=steps \
+    --save_strategy=steps \
+    --save_steps=5
 """
 
 import logging
 import os
-from contextlib import nullcontext
-
-from trl.commands.cli_utils import DPOScriptArguments, init_zero_verbose, TrlParser
-from trl.env_utils import strtobool
-
-TRL_USE_RICH = strtobool(os.getenv("TRL_USE_RICH", "0"))
-
-if TRL_USE_RICH:
-    init_zero_verbose()
-    FORMAT = "%(message)s"
-
-    from rich.console import Console
-    from rich.logging import RichHandler
+from typing import Dict
 
 import torch
-from datasets import load_from_disk as load_dataset, Dataset
+from datasets import load_from_disk, Dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from trl import (
     DPOConfig,
     DPOTrainer,
     ModelConfig,
-    RichProgressCallback,
-    get_kbit_device_map,
     get_peft_config,
-    get_quantization_config,
-)
+    get_quantization_config, get_kbit_device_map, )
+from trl.commands.cli_utils import DPOScriptArguments, TrlParser
 
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
-if TRL_USE_RICH:
-    logging.basicConfig(format=FORMAT, datefmt="[%X]", handlers=[RichHandler()], level=logging.INFO)
+# Disable tokenizers parallelism warning
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-
-if __name__ == "__main__":
-    parser = TrlParser((DPOScriptArguments, DPOConfig, ModelConfig))
-    args, training_args, model_config = parser.parse_args_and_config()
-
-    # Force use our print callback
-    if TRL_USE_RICH:
-        training_args.disable_tqdm = True
-        console = Console()
-
-    ################
-    # Model & Tokenizer
-    ################
+def load_model_and_tokenizer(model_config: ModelConfig) -> tuple:
+    """Load the model and tokenizer based on the provided configuration."""
     torch_dtype = (
         model_config.torch_dtype
         if model_config.torch_dtype in ["auto", None]
@@ -93,13 +75,59 @@ if __name__ == "__main__":
         revision=model_config.model_revision,
         attn_implementation=model_config.attn_implementation,
         torch_dtype=torch_dtype,
-        use_cache=False if training_args.gradient_checkpointing else True,
+        use_cache= True,
         device_map=get_kbit_device_map() if quantization_config is not None else None,
         quantization_config=quantization_config,
+        trust_remote_code = model_config.trust_remote_code
     )
     model = AutoModelForCausalLM.from_pretrained(
-        model_config.model_name_or_path, trust_remote_code=model_config.trust_remote_code, **model_kwargs
+        model_config.model_name_or_path, **model_kwargs
     )
+
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_config.model_name_or_path,
+        trust_remote_code=model_config.trust_remote_code,
+        use_fast=True
+    )
+
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+
+    return model, tokenizer, model_kwargs
+
+
+def prepare_dataset(args: DPOScriptArguments, tokenizer) -> Dict[str, Dataset]:
+    """Load and prepare the dataset for training and evaluation."""
+    ds = load_from_disk(args.dataset_name)
+
+    # if args.sanity_check:
+    #     ds = Dataset.from_dict({feature: ds[feature][:50] for feature in ds.features})
+    #     analyze_token_lengths(ds, tokenizer)
+
+    train_test_split = ds.train_test_split(test_size=0.1, seed=42)
+    return {
+        "train": train_test_split[args.dataset_train_split],
+        "eval": train_test_split[args.dataset_test_split]
+    }
+
+
+def analyze_token_lengths(ds: Dataset, tokenizer: AutoTokenizer) -> None:
+    """Analyze and log token lengths of the dataset."""
+    token_lengths = {key: [] for key in ["prompt", "chosen", "rejected"]}
+
+    for item in ds:
+        for key in token_lengths:
+            token_lengths[key].append(len(tokenizer(item[key])["input_ids"]))
+
+    for key, lengths in token_lengths.items():
+        logger.info(f"Max token length {key}: {max(lengths)}")
+
+
+def main():
+    parser = TrlParser((DPOScriptArguments, DPOConfig, ModelConfig))
+    args, training_args, model_config = parser.parse_args_and_config()
+
+    model, tokenizer, model_kwargs = load_model_and_tokenizer(model_config)
     peft_config = get_peft_config(model_config)
     if peft_config is None:
         ref_model = AutoModelForCausalLM.from_pretrained(
@@ -107,59 +135,33 @@ if __name__ == "__main__":
         )
     else:
         ref_model = None
-    tokenizer = AutoTokenizer.from_pretrained(
-        model_config.model_name_or_path, trust_remote_code=model_config.trust_remote_code
-    )
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
-    # if tokenizer.chat_template is None:
-    #     tokenizer.chat_template = "{% for message in messages %}{{message['role'] + ': ' + message['content'] + '\n\n'}}{% endfor %}{{ eos_token }}"
     if args.ignore_bias_buffers:
-        # torch distributed hack
         model._ddp_params_and_buffers_to_ignore = [
             name for name, buffer in model.named_buffers() if buffer.dtype == torch.bool
         ]
 
-    ################
-    # Optional rich context managers
-    ###############
-    init_context = nullcontext() if not TRL_USE_RICH else console.status("[bold green]Initializing the DPOTrainer...")
-    save_context = (
-        nullcontext()
-        if not TRL_USE_RICH
-        else console.status(f"[bold green]Training completed! Saving the model to {training_args.output_dir}")
+    datasets = prepare_dataset(args, tokenizer)
+
+    trainer = DPOTrainer(
+        model=model,
+        ref_model=ref_model,
+        args=training_args,
+        train_dataset=datasets["train"].shuffle(),
+        eval_dataset=datasets["eval"],
+        tokenizer=tokenizer,
+        peft_config=peft_config,
     )
 
-    ################
-    # Dataset
-    ################
-    ds = load_dataset(args.dataset_name)
-    if args.sanity_check:
-        new_ds = {}
-        for feature in ds.features:
-            new_ds[feature] = ds[feature][:50]
-        ds = Dataset.from_dict(new_ds)
-
-    ds = ds.train_test_split(test_size=0.1, seed=42)
-    train_dataset = ds[args.dataset_train_split]
-    eval_dataset = ds[args.dataset_test_split]
-
-    ################
-    # Training
-    ################
-    with init_context:
-        trainer = DPOTrainer(
-            model,
-            ref_model,
-            args=training_args,
-            train_dataset=train_dataset,
-            eval_dataset=eval_dataset,
-            tokenizer=tokenizer,
-            peft_config=peft_config,
-            callbacks=[RichProgressCallback] if TRL_USE_RICH else None,
-        )
+    trainable_params = sum(p.numel() for p in trainer.model.parameters() if p.requires_grad)
+    all_params = sum(p.numel() for p in trainer.model.parameters())
+    logger.info(
+        f"Trainable Params: {trainable_params:,} ({trainable_params / all_params:.2%}), "
+        f"All Params: {all_params:,}"
+    )
 
     trainer.train()
+    trainer.save_model(training_args.output_dir)
 
-    with save_context:
-        trainer.save_model(training_args.output_dir)
+
+if __name__ == "__main__":
+    main()
