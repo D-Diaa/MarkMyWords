@@ -6,6 +6,7 @@ import sys
 import traceback
 from dataclasses import replace
 
+from math import ceil
 from tqdm import tqdm
 
 from watermark_benchmark.utils import (
@@ -94,7 +95,7 @@ def detect_process(device, config, tasks, writer_queue, custom_builder=None):
                 keys,
                 builder=custom_builder,
             )
-            for g_idx, g in enumerate(generations):
+            for g_idx, g in tqdm(enumerate(generations), total=len(generations)):
                 verifier_outputs = watermark_engine.verify_text(
                     g.response,
                     exact=True,
@@ -203,9 +204,10 @@ def run(config, generations=None, custom_builder=None):
     # Setup writer
     global_manager = multiprocessing.Manager()
     writer_queue = global_manager.Queue()
+    num_writes = len(specs)*config.detections_per_gpu * len(config.get_devices()) + len(baselines)
     writer = multiprocessing.Process(
         target=writer_process,
-        args=(writer_queue, config, len(specs) + len(baselines)),
+        args=(writer_queue, config, num_writes),
     )
     writer.start()
 
@@ -220,7 +222,11 @@ def run(config, generations=None, custom_builder=None):
         tasks_per_process = [[] for _ in range(task_count)]
 
         for t_idx, (w, g) in enumerate(all_tasks):
-            tasks_per_process[t_idx % task_count].append((w, g))
+            g_split_len = ceil(len(g) / task_count)
+            for i in range(task_count):
+                tasks_per_process[i].append(
+                    (w, g[i * g_split_len:(i + 1) * g_split_len])
+                )
 
         detect_processes = []
         for t_idx, t in enumerate(tasks_per_process):

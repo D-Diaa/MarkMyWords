@@ -5,6 +5,7 @@ import signal
 import sys
 from dataclasses import replace
 
+from math import ceil
 from tqdm import tqdm
 from transformers import AutoTokenizer
 
@@ -50,7 +51,8 @@ def gen_process(
         device,
         prompts,
         custom_builder=None,
-        use_tqdm=False,
+        use_tqdm=True,
+        id_offset=0,
 ):
     """
     This function is a process that generates watermarked text.
@@ -108,7 +110,8 @@ def gen_process(
         outputs = server.run(
             prompts, config, temp, keys, watermark, use_tqdm=use_tqdm
         )
-
+        for i in range(len(outputs)):
+            outputs[i] = replace(outputs[i], id=outputs[i].id + id_offset)
         writer_queue.put(outputs)
 
         # Reset server
@@ -124,7 +127,7 @@ def run(
         watermarks=None,
         custom_builder=None,
         raw_prompts=default_prompts,
-        use_tqdm=False,
+        use_tqdm=True,
 ):
     """
     This function runs the watermark generation process.
@@ -206,26 +209,28 @@ def run(
         return
 
     # Setup processes
-    ct = 1 + (len(filtered_tasks) // len(config.get_devices()))
     global_manager = multiprocessing.Manager()
     processes = []
     writer_queue = global_manager.Queue()
     random.shuffle(filtered_tasks)
 
     if len(config.get_devices()) > 1:
+        prompts_per_device = ceil(len(prompts) / len(config.get_devices()))
         for idx, device in enumerate(config.get_devices()):
-            local = filtered_tasks[idx * ct: (idx + 1) * ct]
+            local_prompts = prompts[idx * prompts_per_device: (idx + 1) * prompts_per_device]
+            id_offset = idx * len(local_prompts)
             processes.append(
                 multiprocessing.Process(
                     target=gen_process,
                     args=(
                         config,
-                        local,
+                        filtered_tasks,
                         writer_queue,
                         device,
-                        prompts,
+                        local_prompts,
                         custom_builder,
                         use_tqdm,
+                        id_offset,
                     ),
                 )
             )
@@ -233,7 +238,7 @@ def run(
 
         writer = multiprocessing.Process(
             target=writer_process,
-            args=(writer_queue, config, len(filtered_tasks)),
+            args=(writer_queue, config, len(filtered_tasks)*len(config.get_devices())),
         )
         writer.start()
     else:
