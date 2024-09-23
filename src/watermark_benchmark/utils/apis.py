@@ -273,9 +273,7 @@ def custom_model_process(custom_model_queue, model_path, devices, config):
     model_kwargs = get_server_args(config)
     model_kwargs["max_model_len"] = config.max_new_tokens + config.custom_max_new_tokens + 512 # 512 is a buffer for system prompt
     adapter_path = None
-    if (model_path is not None and
-            os.path.exists(os.path.join(model_path, "adapter_config.json")) and
-            not os.path.exists(os.path.join(model_path, "config.json"))):
+    if model_path is not None and os.path.exists(os.path.join(model_path, "adapter_config.json")) and not os.path.exists(os.path.join(model_path, "config.json")):
         print(f"Loading base and then generating from adapter '{model_path}'")
         adapter_path = model_path
         adapter_config = json.load(open(os.path.join(model_path, "adapter_config.json")))
@@ -284,7 +282,7 @@ def custom_model_process(custom_model_queue, model_path, devices, config):
     lora_request = None
     if adapter_path is not None:
         lora_request = LoRARequest(adapter_path, devices[0]+1, adapter_path)
-    server = LLM(model_path, enable_lora = (adapter_path is not None),  **model_kwargs)
+    server = LLM(model_path, enable_lora = (adapter_path is not None), max_lora_rank=64,  **model_kwargs)
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     gen_params = SamplingParams(
         temperature=config.custom_temperature,
