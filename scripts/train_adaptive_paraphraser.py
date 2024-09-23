@@ -96,13 +96,9 @@ def load_model_and_tokenizer(model_config: ModelConfig) -> tuple:
     return model, tokenizer, model_kwargs
 
 
-def prepare_dataset(args: DPOScriptArguments, tokenizer) -> Dict[str, Dataset]:
+def prepare_dataset(args: DPOScriptArguments) -> Dict[str, Dataset]:
     """Load and prepare the dataset for training and evaluation."""
     ds = load_from_disk(args.dataset_name)
-
-    # if args.sanity_check:
-    #     ds = Dataset.from_dict({feature: ds[feature][:50] for feature in ds.features})
-    #     analyze_token_lengths(ds, tokenizer)
 
     train_test_split = ds.train_test_split(test_size=0.1, seed=42)
     return {
@@ -140,7 +136,7 @@ def main():
             name for name, buffer in model.named_buffers() if buffer.dtype == torch.bool
         ]
 
-    datasets = prepare_dataset(args, tokenizer)
+    datasets = prepare_dataset(args)
 
     trainer = DPOTrainer(
         model=model,

@@ -56,9 +56,6 @@ def run(
         RATE=True,
         DETECT=True,
 ):
-    # Generation
-    generations = []
-
     # Create output dir:
     try:
         os.mkdir(config.results)
