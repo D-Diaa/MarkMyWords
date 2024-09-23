@@ -37,13 +37,10 @@ class LLMCompareRating(RatingMetric):
         tasks = []
         for generation in generations:
             if generation.watermark is not None:
-                tasks.append(
-                    generation.prompt.replace("[/INST]", "")
-                    .replace("[INST]", "")
-                    .replace("<<SYS>>", "")
-                    .replace("<</SYS>>", "")
-                    .strip()
-                )
+                cleaned_prompt = generation.prompt
+                for token in tokenizer_tokens:
+                    cleaned_prompt = cleaned_prompt.replace(token, "").strip()
+                tasks.append(cleaned_prompt)
 
         inputs = [g.response for g in generations if g.watermark is not None]
         baselines = [
@@ -118,8 +115,18 @@ class LLMCompareRating(RatingMetric):
 
         # Write to file
         writer_queue.put(new_generations)
-
-
+tokenizer_tokens = [
+    "<|begin_of_text|>",
+    "<|start_header_id|>",
+    "<|end_header_id|>",
+    "<|eot_id|>",
+    "[/INST]",
+    "[INST]",
+    "<<SYS>>",
+    "<</SYS>>",
+    "<|im_start|>",
+    "<|im_end|>",
+]
 compare_prompt = """<|begin_of_text|><|start_header_id|>system<|end_header_id|> 
 Please act as an impartial judge and evaluate the quality of the responses provided by two
 AI assistants to the user question displayed below. You should choose the assistant that

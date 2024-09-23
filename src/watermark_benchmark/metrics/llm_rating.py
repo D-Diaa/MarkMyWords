@@ -20,7 +20,18 @@ You are given a prompt and a response, and you provide a grade out of 100 measur
 Remove points as soon as one of the criteria is missed.
 <|start_header_id|>user<|end_header_id|> 
 Prompt:\n{}\nResponse:\n{} <|eot_id|> <|start_header_id|>assistant<|end_header_id|> Grade: """
-
+tokenizer_tokens = [
+    "<|begin_of_text|>",
+    "<|start_header_id|>",
+    "<|end_header_id|>",
+    "<|eot_id|>",
+    "[/INST]",
+    "[INST]",
+    "<<SYS>>",
+    "<</SYS>>",
+    "<|im_start|>",
+    "<|im_end|>",
+]
 
 class LLMRating(RatingMetric):
 
@@ -80,13 +91,12 @@ class LLMRating(RatingMetric):
 
         tasks = []
         for generation in generations:
+            cleaned_prompt = generation.prompt
+            for token in tokenizer_tokens:
+                cleaned_prompt = cleaned_prompt.replace(token, "").strip()
             tasks.append(
                 self.prompt.format(
-                    generation.prompt.replace("[/INST]", "")
-                    .replace("[INST]", "")
-                    .replace("<<SYS>>", "")
-                    .replace("<</SYS>>", "")
-                    .strip(),
+                    cleaned_prompt,
                     generation.response,
                 )
             )
