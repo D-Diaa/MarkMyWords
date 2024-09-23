@@ -1,0 +1,1 @@
+{'rng': 'Internal', 'hash_len': 3, 'min_hash': None, 'key_len': 4, 'generator': 'exponential', 'tokenizer': 'meta-llama/Llama-2-7b-chat-hf', 'temp': 1, 'delta': 2.5, 'gamma': 0.5, 'skip_prob': 0.025, 'pvalue': 0.01, 'verifiers': [{'verifier': 'Theoretical', 'empirical_method': 'regular', 'log': True, 'gamma': 0}], 'randomize': True, 'offset': False}
