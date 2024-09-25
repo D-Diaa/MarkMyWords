@@ -5,7 +5,7 @@ import signal
 import sys
 from dataclasses import replace
 
-from math import ceil
+from math import ceil, floor
 from tqdm import tqdm
 from transformers import AutoTokenizer
 
@@ -48,7 +48,7 @@ def gen_process(
         config,
         tasks,
         writer_queue,
-        device,
+        devices,
         prompts,
         custom_builder=None,
         use_tqdm=True,
@@ -64,7 +64,7 @@ def gen_process(
         device (int): The device to use for generating the watermarked text.
         prompts (list): A list of prompts to use for generating the watermarked text.
     """
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(device)
+    os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(str(d) for d in devices)
 
     # Imports
     import torch
@@ -213,11 +213,12 @@ def run(
     processes = []
     writer_queue = global_manager.Queue()
     random.shuffle(filtered_tasks)
+    num_processes = floor(len(config.get_devices()) / config.gpus_per_process)
 
-    if len(config.get_devices()) > 1:
-        prompts_per_device = ceil(len(prompts) / len(config.get_devices()))
-        for idx, device in enumerate(config.get_devices()):
-            local_prompts = prompts[idx * prompts_per_device: (idx + 1) * prompts_per_device]
+    if num_processes > 1:
+        prompts_per_process = ceil(len(prompts) /num_processes)
+        for idx in range(num_processes):
+            local_prompts = prompts[idx * prompts_per_process: (idx + 1) * prompts_per_process]
             id_offset = idx * len(local_prompts)
             processes.append(
                 multiprocessing.Process(
@@ -226,7 +227,7 @@ def run(
                         config,
                         filtered_tasks,
                         writer_queue,
-                        device,
+                        config.get_devices()[idx * config.gpus_per_process: (idx + 1) * config.gpus_per_process],
                         local_prompts,
                         custom_builder,
                         use_tqdm,
@@ -247,12 +248,12 @@ def run(
             args=(writer_queue, config, len(filtered_tasks), False),
         )
         writer.start()
-        device = config.get_devices()[0]
+        devices = config.get_devices()
         gen_process(
             config,
             filtered_tasks,
             writer_queue,
-            device,
+            devices,
             prompts,
             custom_builder,
             True,

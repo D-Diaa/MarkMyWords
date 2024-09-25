@@ -33,17 +33,21 @@ class HFServer(Server, LogitsProcessor):
         - **kwargs: Additional keyword arguments.
         """
         model = config.model
-        self.server = AutoModelForCausalLM.from_pretrained(model)
-        self.tokenizer = AutoTokenizer.from_pretrained(model)
-        self.tokenizer.pad_token = self.tokenizer.eos_token
+        self.server = AutoModelForCausalLM.from_pretrained(model, device_map="auto")
+        self._tokenizer = AutoTokenizer.from_pretrained(model)
+        self._tokenizer.pad_token = self._tokenizer.eos_token
 
         self.devices = [[i for i in range(torch.cuda.device_count())][0]]
-        self.server = self.server.to(self.devices[0])
         self.watermark_engine = None
         self.batch_size = config.hf_batch_size
         self.current_batch = 0
         self.current_offset = 0
 
+    def tokenizer(self):
+        """
+        Returns the tokenizer.
+        """
+        return self._tokenizer
     def install(self, watermark_engine) -> None:
         """
         Installs the watermark engine.
@@ -98,22 +102,19 @@ class HFServer(Server, LogitsProcessor):
         while True:
             try:
                 self.current_offset = len(generations)
-                for i in tqdm(
+                for batch_start in tqdm(
                         range(0, len(inputs) - len(generations), self.batch_size),
                         total=(len(inputs) - len(generations)) // self.batch_size,
-                        description=f"Generating text (batch size {self.batch_size})",
+                        # description=f"Generating text (batch size {self.batch_size})",
                         disable=not use_tqdm,
                 ):
-                    self.current_batch = i
-                    batch = self.tokenizer(
-                        inputs[
-                        self.current_offset
-                        + (i * self.batch_size): self.current_offset
-                                                 + ((i + 1) * self.batch_size)
-                        ],
+                    prompts = inputs[self.current_offset+batch_start: self.current_offset+ batch_start+self.batch_size]
+                    self.current_batch = batch_start//self.batch_size
+                    batch = self._tokenizer(
+                        prompts,
                         return_tensors="pt",
                         padding=True,
-                    ).to(self.devices[0])
+                    ).input_ids.to(self.server.device)
                     outputs = self.server.generate(
                         batch,
                         temperature=temp,
@@ -122,6 +123,7 @@ class HFServer(Server, LogitsProcessor):
                         do_sample=(temp > 0),
                         logits_processor=processors,
                     )
+                    responses = self._tokenizer.batch_decode(outputs[:, batch[0].shape[0]:], skip_special_tokens=True)
                     generations.extend(
                         [
                             Generation(
@@ -133,28 +135,28 @@ class HFServer(Server, LogitsProcessor):
                                 (
                                     keys[
                                         self.current_offset
-                                        + (i * self.batch_size)
+                                        + batch_start
                                         + j
                                         ]
                                     if keys is not None
                                     else None
                                 ),
                                 None,
-                                self.current_offset + (i * self.batch_size) + j,
-                                output.prompt,
-                                output.outputs[0].text.strip(),
+                                self.current_offset + batch_start + j,
+                                prompts[j],
+                                responses[j],
                                 None,
                                 None,
                                 None,
                                 *self.stats[
                                     self.current_offset
-                                    + (i * self.batch_size)
+                                    + batch_start
                                     + j
                                     ],
                                 temp,
                                 [],
                             )
-                            for j, output in enumerate(outputs)
+                            for j in range(len(responses))
                         ]
                     )
             except RuntimeError as e:
@@ -170,8 +172,3 @@ class HFServer(Server, LogitsProcessor):
         self.current_offset = 0
         return generations
 
-    def tokenizer(self):
-        """
-        Returns the tokenizer.
-        """
-        return self.tokenizer

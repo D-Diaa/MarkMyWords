@@ -1,0 +1,39 @@
+done_tasks: '.saved_tasks'
+num_return_sequences: 1
+model: 'meta-llama/Llama-2-70b-chat-hf'
+engine: 'hf'
+output: 'generation_results'
+watermark: 'watermark_specs'
+max_new_tokens: 512
+gpus_per_process: 4
+seed: 0
+huffman_coding: 'static_data/encodings/llama_2_encoding.tsv' 
+hf_batch_size: 28
+# Perturb parameters
+paraphrase: False
+dipper_processes: 0
+custom_processes: 0
+openai_processes: 0 # not more than that
+translate_processes: 8 # not more than that (per GPU)
+threads: 32
+misspellings: 'static_data/misspellings.json' 
+devices: [0,1,2,3]
+gpu_memory_utilization: 0.95
+
+# Detect parameters
+detections_per_gpu: 8 # not more than that
+# Summarize parameter
+results: 'results'
+threshold: 0.8
+hull_axis: [['generator', 'rng']]
+aggregate_thresholds: [[0.02, 1], [0.1, 1], [0.02, 0.8], [0.1, 0.8], [0.02, -1], [0.1, -1]]
+# Custom model parameter , "../dpo_llama_binary", "../dpo_llama_exponential", "../dpo_llama_its", "../dpo_llama_distributionshift"
+custom_model_paths: []
+custom_batch: 1
+custom_temperature: 1.0
+custom_max_new_tokens: 512
+custom_only: False
+prompt_dataset_hf: ""
+prompt_dataset_split: "train"
+prompt_dataset_column: "prompt"
+prompt_dataset_size: -1
