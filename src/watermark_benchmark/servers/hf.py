@@ -114,9 +114,12 @@ class HFServer(Server, LogitsProcessor):
                         prompts,
                         return_tensors="pt",
                         padding=True,
-                    ).input_ids.to(self.server.device)
+                    )
+                    input_ids = batch.input_ids.to(self.server.device)
+                    attention_mask = batch.attention_mask.to(self.server.device)
                     outputs = self.server.generate(
-                        batch,
+                        input_ids,
+                        attention_mask=attention_mask,
                         temperature=temp,
                         max_new_tokens=config.max_new_tokens,
                         num_return_sequences=config.num_return_sequences,

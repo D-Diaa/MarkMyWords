@@ -76,18 +76,21 @@ def gen_process(
     from watermark_benchmark.watermark import get_watermark
 
     setup_randomness(config)
+    unique_watermarks = set(t[0].generator for t in tasks if t[0] is not None)
 
     # Setup server
     server = get_model(
         config.engine, config, max_model_len=2048, **get_server_args(config)
     )
     tokenizer = server.tokenizer()
-    binarizer = Binarization(
-        tokenizer,
-        server.devices,
-        use_huffman_coding=config.huffman_coding is not None,
-        huffman_coding_path=config.huffman_coding,
-    )
+    binarizer = False
+    if "binary" in unique_watermarks:
+        binarizer = Binarization(
+            tokenizer,
+            server.devices,
+            use_huffman_coding=config.huffman_coding is not None,
+            huffman_coding_path=config.huffman_coding,
+        )
 
     def run_instance(watermark, keys, temp):
         # Setup watermark
