@@ -126,7 +126,7 @@ class HFServer(Server, LogitsProcessor):
                         do_sample=(temp > 0),
                         logits_processor=processors,
                     )
-                    responses = self._tokenizer.batch_decode(outputs[:, batch[0].shape[0]:], skip_special_tokens=True)
+                    responses = self._tokenizer.batch_decode(outputs[:, input_ids[0].shape[0]:], skip_special_tokens=True)
                     generations.extend(
                         [
                             Generation(
