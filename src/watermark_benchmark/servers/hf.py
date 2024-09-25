@@ -61,7 +61,7 @@ class HFServer(Server, LogitsProcessor):
         # Apply watermarking
         ids = [
             self.current_offset + (self.current_batch * self.batch_size) + i
-            for i in range(self.batch_size)
+            for i in range(input_ids.shape[0])
         ]
         self.stats.update(scores, ids)
         if self.watermark_engine is not None:
