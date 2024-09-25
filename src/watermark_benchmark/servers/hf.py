@@ -118,7 +118,7 @@ class HFServer(Server, LogitsProcessor):
                     outputs = self.server.generate(
                         batch,
                         temperature=temp,
-                        max_length=config.max_new_tokens,
+                        max_new_tokens=config.max_new_tokens,
                         num_return_sequences=config.num_return_sequences,
                         do_sample=(temp > 0),
                         logits_processor=processors,
