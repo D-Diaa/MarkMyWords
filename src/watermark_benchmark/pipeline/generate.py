@@ -83,7 +83,7 @@ def gen_process(
         config.engine, config, max_model_len=2048, **get_server_args(config)
     )
     tokenizer = server.tokenizer()
-    binarizer = False
+    binarizer = None
     if "binary" in unique_watermarks:
         binarizer = Binarization(
             tokenizer,
