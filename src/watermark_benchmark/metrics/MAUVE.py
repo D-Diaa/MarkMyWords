@@ -10,6 +10,7 @@ import numpy as np
 from tqdm import tqdm
 
 from .quality import RatingMetric
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 # Suppress logging for the mauve module
 
@@ -57,7 +58,7 @@ class MAUVERating(RatingMetric):
                 )
 
         embedding_model = LLM(
-            model="gpt2-large", enforce_eager=True, gpu_memory_utilization=0.24
+            model="gpt2-large", enforce_eager=True, gpu_memory_utilization=0.5
         )
         tokenizer = embedding_model.get_tokenizer()
 
