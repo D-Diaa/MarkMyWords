@@ -45,7 +45,7 @@ class RepetitionRating(RatingMetric):
                         match.append(0)
                         seen.add(ngram)
 
-                rep[n - 1] = -sum(match) / len(match) if match else 0
+                rep[n - 2] = -sum(match) / len(match) if match else 0
 
             generations[task_idx] = replace(
                 generations[task_idx], rating=tuple(rep)
