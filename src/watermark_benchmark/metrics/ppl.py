@@ -11,7 +11,18 @@ You are given a prompt and a response, and you provide a grade out of 100 measur
 Remove points as soon as one of the criteria is missed. <|eot_id|> 
 <|start_header_id|>user<|end_header_id|> 
 Prompt: {}\nResponse: {}<|eot_id|> <|start_header_id|>assistant<|end_header_id|> Grade: """
-
+tokenizer_tokens = [
+    "<|begin_of_text|>",
+    "<|start_header_id|>",
+    "<|end_header_id|>",
+    "<|eot_id|>",
+    "[/INST]",
+    "[INST]",
+    "<<SYS>>",
+    "<</SYS>>",
+    "<|im_start|>",
+    "<|im_end|>",
+]
 
 class PPLRating(RatingMetric):
     def rate(self, generations, _):
@@ -68,18 +79,21 @@ class PPLRating(RatingMetric):
                     .split("<</SYS>>")[0]
                     .strip()
                 )
-            else:
+            elif "<|start_header_id|>system<|end_header_id|>" in generation.prompt:
                 original_prompt = (
-                    generation.prompt.replace("[/INST]", "")
-                    .replace("[INST]", "")
-                    .replace("<<SYS>>", "")
-                    .replace("<</SYS>>", "")
-                    .replace(
-                        "You are a helpful assistant. Always answer in the most accurate way.",
-                        "",
-                    )
+                    generation.prompt.split("<|start_header_id|>user<|end_header_id|>")[1]
+                    .split("<|start_header_id|>assistant<|end_header_id|>")[0]
                     .strip()
                 )
+                original_system_prompt = (
+                    generation.prompt.split("<|start_header_id|>system<|end_header_id|>")[1]
+                    .split("<|start_header_id|>user<|end_header_id|>")[0]
+                    .strip()
+                )
+            else:
+                original_prompt = generation.prompt
+                for token in tokenizer_tokens:
+                    original_prompt = original_prompt.replace(token, "").strip()
                 original_system_prompt = None
 
             original_response = generation.response
