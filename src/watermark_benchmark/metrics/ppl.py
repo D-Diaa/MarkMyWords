@@ -1,8 +1,9 @@
 import os
 from dataclasses import replace
 
-import math
+from torch.nn import CrossEntropyLoss
 from tqdm import tqdm
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from .quality import RatingMetric
 
@@ -26,19 +27,6 @@ tokenizer_tokens = [
 
 class PPLRating(RatingMetric):
     def rate(self, generations, _):
-        """
-        Runs the model on the given generations and calculates the rating for each generation.
-
-        Args:
-            config (Config): Configuration object.
-            generations (List[Generation]): List of generations to rate.
-            writer_queue (Queue): Queue to write the rated generations to.
-            device (int): Index of the GPU device to use.
-
-        Returns:
-            None
-        """
-
         config = self.config
         writer_queue = self.writer_queue
         device = self.device
@@ -48,8 +36,7 @@ class PPLRating(RatingMetric):
         # Imports
         import torch
 
-        from watermark_benchmark.servers import get_model
-        from watermark_benchmark.utils import get_server_args, setup_randomness
+        from watermark_benchmark.utils import setup_randomness
 
         torch.set_num_threads(1)
 
@@ -57,12 +44,11 @@ class PPLRating(RatingMetric):
 
         # Setup server
         config.model = "meta-llama/Meta-Llama-3-8B-Instruct"
-        config.max_new_tokens = 8
+        config.max_new_tokens = 1
         config.dtype = "bfloat16"
         config.num_return_sequences = 1
-        inference_engine = config.engine
-        server = get_model(inference_engine, config, **get_server_args(config))
-        tokenizer = server.tokenizer()
+        model = AutoModelForCausalLM.from_pretrained(config.model, device_map="auto")
+        tokenizer = AutoTokenizer.from_pretrained(config.model)
         tokenizer.pad_token = tokenizer.eos_token
 
         tasks = []
@@ -91,20 +77,11 @@ class PPLRating(RatingMetric):
                     .strip()
                 )
             else:
-                original_prompt = generation.prompt
-                for token in tokenizer_tokens:
-                    original_prompt = original_prompt.replace(token, "").strip()
-                original_system_prompt = None
+                raise ValueError("Prompt format not recognized")
 
             original_response = generation.response
 
-            if not original_system_prompt:
-                full_prompt = f"""
-<|begin_of_text|><|start_header_id|>user<|end_header_id|>
-{original_prompt} <|eot_id|> <|start_header_id|>assistant<|end_header_id|> 
-{original_response} <|eot_id|>"""
-            else:
-                full_prompt = f"""
+            full_prompt = f"""
 <|begin_of_text|><|start_header_id|>system<|end_header_id|> 
 {original_system_prompt} <|eot_id|> <|start_header_id|>user<|end_header_id|>
 {original_prompt} <|eot_id|> <|start_header_id|>assistant<|end_header_id|> 
@@ -126,51 +103,69 @@ class PPLRating(RatingMetric):
                     )
                     task = tokenizer.decode(encoded_task[:max_token_length])
             tasks[i] = task
-
-        # Run model
-        outputs = server.run(
+        encodings = tokenizer(
             tasks,
-            config,
-            1.0,
-            use_tqdm=True,
-            prompt_logprobs=1,
-        )
+            add_special_tokens=False,
+            padding=True,
+            truncation=True,
+            max_length=max_token_length,
+            return_tensors="pt",
+            return_attention_mask=True,
+        ).to(model.device)
 
-        # Parse outputs
+        encoded_texts = encodings["input_ids"]
+        attn_masks = encodings["attention_mask"]
         end_header_token_str = "<|end_header_id|>"
         end_header_token = tokenizer.encode(end_header_token_str)[-1]
-        for idx, gen in enumerate(outputs):
-            input_task = tasks[idx]
-            if (
-                    "<|begin_of_text|><|start_header_id|>system<|end_header_id|>"
-                    in input_task
-            ):
-                turn_index = 3
-            else:
-                turn_index = 2
 
-            filtered_logprobs = [
-                v[1]
-                for v in get_items_after_nth_turn(
-                    gen.prompt_logprobs, end_header_token, turn_index
-                )[1:]
-            ]
+        ppls = []
+        batch_size = 16
+        turn_index = 3
+        loss_fct = CrossEntropyLoss(reduction="none")
 
-            ppl = math.exp(-sum(filtered_logprobs) / len(filtered_logprobs))
-            generations[idx] = replace(generations[idx], rating=-ppl)
+        for start_index in tqdm(range(0, len(encoded_texts), batch_size)):
+            end_index = min(start_index + batch_size, len(encoded_texts))
+            encoded_batch = encoded_texts[start_index:end_index]
+            attn_mask = attn_masks[start_index:end_index]
+            labels = encoded_batch
 
-        # Write to file
+            with torch.no_grad():
+                output = model(encoded_batch, attention_mask=attn_mask)
+            logits = output.logits
+            shift_logits = logits[..., :-1, :]
+            shift_labels = labels[..., 1:]
+            shift_attention_mask_batch = attn_mask[..., 1:]
+            for i in range(start_index, end_index):
+                # Get the logits and labels for the specific example
+                logits_example = shift_logits[i-start_index]
+                encoded_example = shift_labels[i-start_index]
+                attn_mask_example = shift_attention_mask_batch[i-start_index]
+                # Find the token position of the 3rd end_header_token (which marks the start of the assistant response)
+                end_of_nth_turn = [
+                    idx for idx, token in enumerate(encoded_example) if token == end_header_token
+                ]
+
+                # We need the tokens after the third end_header_token, i.e., the assistant response
+                if len(end_of_nth_turn) < turn_index:
+                    print(f"Warning: Less than {turn_index} end_header_tokens found, skipping this example")
+                    continue
+
+                start_of_response = end_of_nth_turn[turn_index-1] + 1
+
+                # Slice the logits and labels to only the assistant response
+                response_logits = logits_example[start_of_response:-1].contiguous()  # Exclude the last token <|eot_id|>
+                response_labels = encoded_example[start_of_response:-1].contiguous()
+                response_attn_mask = attn_mask_example[start_of_response:-1].contiguous()
+
+                # Compute the cross-entropy loss for these tokens
+                ppls.append(torch.exp(
+                    (loss_fct(response_logits, response_labels) * response_attn_mask).sum()
+                    / response_attn_mask.sum()
+                ))
+
+        for i, generation in enumerate(generations):
+            generations[i] = replace(generation, rating=ppls[i])
+
+            # Write to file
         writer_queue.put(generations)
 
-
-def get_items_after_nth_turn(array, value, n):
-    occurrence_count = 0
-    for index, pair in enumerate(array):
-        number, _ = pair
-        if number == value:
-            occurrence_count += 1
-            if occurrence_count == n:
-                return array[index:]
-
-    # If the nth occurrence is never found, return an empty list
-    return []
