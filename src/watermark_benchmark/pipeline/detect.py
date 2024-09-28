@@ -64,12 +64,12 @@ def detect_process(device, config, tasks, writer_queue, custom_builder=None):
     from watermark_benchmark.utils import get_tokenizer, setup_randomness
     from watermark_benchmark.utils.bit_tokenizer import Binarization
     from watermark_benchmark.watermark import get_watermark
-    unique_watermarks = set(t[0].generator for t in tasks if t[0] is not None)
+    has_binary = any("binary" in t[0] for t in tasks)
 
     # Randomness and models
     tokenizer = get_tokenizer(config.model)
     binarizer = None
-    if "binary" in unique_watermarks:
+    if has_binary:
         binarizer = Binarization(
             tokenizer,
             [0],
