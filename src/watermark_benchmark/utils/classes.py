@@ -505,6 +505,7 @@ class ConfigSpec:
     custom_processes: int = 1
     translate_processes: int = 1
     gpus_per_process: int = 1
+    force_rate: bool = False
     custom_only: bool = False
     openai_key: Optional[str] = None
     threads: int = 32

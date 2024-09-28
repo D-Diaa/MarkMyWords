@@ -79,18 +79,20 @@ def run(config_file, generations=None):
     outfilepath = get_output_file(config)
     if not os.path.exists(outfilepath):
         Generation.to_file(outfilepath)
-    existing = {
-        (
+    existing = {}
+    if not config.force_rate:
+        existing = {
             (
-                str(g.watermark.to_dict(True, True))
-                if g.watermark is not None
-                else g.temp
-            ),
-            g.attack,
-        )
-        for g in Generation.from_file(outfilepath)
-        if g.rating != -1
-    }
+                (
+                    str(g.watermark.to_dict(True, True))
+                    if g.watermark is not None
+                    else g.temp
+                ),
+                g.attack,
+            )
+            for g in Generation.from_file(outfilepath)
+            if g.rating != -1
+        }
 
     settings = [
         v
@@ -213,3 +215,5 @@ def rate(config_file, generations):
         generations = Generation.from_file(get_input_file(config))
 
     return run(config, generations), config
+if __name__ == "__main__":
+    main()
