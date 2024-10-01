@@ -98,18 +98,35 @@ def detect_process(device, config, tasks, writer_queue, custom_builder=None):
                 keys,
                 builder=custom_builder,
             )
+            return_cumul = watermark.generator == "distributionshift"
             for g_idx, g in tqdm(enumerate(generations), total=len(generations)):
                 verifier_outputs = watermark_engine.verify_text(
                     g.response,
                     exact=True,
                     index=key_indices[g_idx],
                     meta={"prompt": g.prompt},
+                    return_cumul=return_cumul,
                 )
                 sep_watermarks = watermark.sep_verifiers()
 
                 for verifier_index, verifier_output in enumerate(
                         verifier_outputs.values()
                 ):
+                    if return_cumul:
+                        verifier_output, cumul = verifier_output
+                        if g.id == 1:
+                            print(f"\n\nAttack:{g.attack}\n\n")
+                            tokens = watermark_engine.tokenizer.encode(g.response, add_special_tokens=False, return_tensors="pt")
+                            # decode every token separately
+                            decoded = [watermark_engine.tokenizer.decode(t) for t in tokens.squeeze().tolist()]
+                            if len(decoded)!=len(cumul):
+                                print("Length mismatch")
+                                continue
+                            # print every decoded token green if cumul[i] == 1 else red
+                            print("".join([f"\033[92m{d}\033[0m" if c == 1 else f"\033[91m{d}\033[0m" for d, c in zip(decoded, cumul)]))
+                            # print as latex code
+                            latex = "".join([f"\\sethlcolor{{pastelgreen}}\hl{{{d}}}" if c == 1 else f"\\sethlcolor{{pastelred}}\hl{{{d}}}" for d, c in zip(decoded, cumul)])
+                            g = replace(g, response=latex)
                     pvalue = verifier_output.get_pvalue()
                     eff = verifier_output.get_size(watermark.pvalue)
                     full.append(
@@ -303,3 +320,6 @@ def detect(config_file, generations, custom_builder=None):
         generations = Generation.from_file(get_input_file(config))
 
     return run(config, generations, custom_builder), config
+
+if __name__ == "__main__":
+    main()
