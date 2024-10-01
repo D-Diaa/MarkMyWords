@@ -80,9 +80,9 @@ class DistributionShiftVerifier(Verifier):
         super().__init__(rng, pvalue, tokenizer)
         self.gamma = gamma
 
-    def _verify(self, tokens, index=0, meta=None):
+    def _verify(self, tokens, index=0, meta=None, return_cumul=False):
         cumul = []
-        seen = set()
+        seen = {}
 
         for i, _ in enumerate(tokens):
             prev_values = tokens[:i]
@@ -92,16 +92,14 @@ class DistributionShiftVerifier(Verifier):
                 self.rng.get_seed(prev_values, [index]), 0
             )
             greenlist = self.rng.green_list(seeds, self.gamma)
-
-            if (current_token, seeds.item()) in seen:
+            key = (current_token, seeds.item())
+            if key in seen:
+                cumul.append(seen[key])
                 continue
+            value = 1 if current_token in set(greenlist.squeeze().cpu().numpy()) else 0
+            seen[key] = value
+            cumul.append(value)
 
-            seen.add((current_token, seeds.item()))
-
-            if current_token in set(greenlist.squeeze().cpu().numpy()):
-                cumul.append(1)
-            else:
-                cumul.append(0)
 
         if not len(cumul):
             return VerifierOutput()
@@ -115,6 +113,9 @@ class DistributionShiftVerifier(Verifier):
                 ctr, cnt, self.gamma, alternative="greater"
             ).pvalue
             return_value.update(i, nd)
+
+        if return_cumul:
+            return return_value, cumul
 
         return return_value
 
