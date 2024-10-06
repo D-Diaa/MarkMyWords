@@ -1,14 +1,15 @@
 import json
 import os
+import re
 import time
+from dataclasses import replace
 
 import math
 import tiktoken
 import torch
 from openai import OpenAI
+from tqdm import tqdm
 from transformers import AutoTokenizer
-from vllm import LLM, SamplingParams
-from vllm.lora.request import LoRARequest
 
 from watermark_benchmark.utils import get_server_args
 
@@ -266,8 +267,99 @@ def dipper_server(queue, devices):
         texts, destination_queue = task
         destination_queue.put(call_dipper(model, tokenizer, texts, device))
 
+def llm_rating_process(rating_queue, devices, config):
+    from watermark_benchmark.metrics.llm_rating import prompt_cot, prompt_no_cot, tokenizer_tokens
+    cot = "cot" in config.quality_metric
+    prompt = prompt_cot if cot else prompt_no_cot
+    os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(str(i) for i in devices)
+
+    from watermark_benchmark.servers import get_model
+    from watermark_benchmark.utils import get_server_args, setup_randomness
+    setup_randomness(config)
+
+    # Setup server
+    config.model = "meta-llama/Meta-Llama-3-8B-Instruct"
+    config.max_new_tokens = 2048  # for COT
+    config.num_return_sequences = 1
+    inference_engine = config.engine
+
+    server = get_model(
+        inference_engine,
+        config,
+        max_model_len=4096,
+        **get_server_args(config)
+    )
+
+    tokenizer = server.tokenizer()
+
+    while True:
+        task = rating_queue.get(block=True)
+        generations, destination_queue = task
+        tasks = []
+        for generation in generations:
+            cleaned_prompt = generation.prompt
+            for token in tokenizer_tokens:
+                cleaned_prompt = cleaned_prompt.replace(token, "").strip()
+            tasks.append(
+                prompt.format(
+                    cleaned_prompt,
+                    generation.response,
+                )
+            )
+
+        # Clip sequences that are too long
+        max_token_length = 8000
+        for i in tqdm(range(len(tasks)), total=len(tasks), desc="Encoding"):
+            task = tasks[i]
+            if len(task) > max_token_length:
+                encoded_task = tokenizer(task)["input_ids"]
+                if len(encoded_task) > max_token_length:
+                    print(
+                        "Warning: Task too long ({} tokens), clipping to {} tokens".format(
+                            len(encoded_task), max_token_length
+                        )
+                    )
+                    task = tokenizer.decode(encoded_task[:max_token_length])
+            tasks[i] = task
+        if not len(tasks):
+            return
+        # Run model
+        outputs = server.run(tasks, config, 0.0, use_tqdm=True)
+        num_regex = re.compile(r"([0-9]+\.*[0-9]*)(/100)?")
+        # Parse outputs
+        for idx, gen in enumerate(outputs):
+            try:
+                raw = 0.0
+                matches = re.findall(num_regex, gen.response)
+                if matches and len(matches):
+                    val = matches[-1][0].replace("[", "").replace("]", "")
+                    if "/" in val:
+                        raw = float(val.split("/")[0]) / float(
+                            val.split("/")[1]
+                        )
+                    else:
+                        raw = float(val) / 100
+
+                raw = max(min(raw, 1), 0)
+            except Exception as e:
+                generations[idx] = replace(generations[idx], rating=-1)
+                print("Encountered error while parsing rating: {}".format(e))
+                continue
+
+            if idx >= len(generations):
+                print(
+                    "Warning: Received more outputs than generations ({} vs {})".format(
+                        len(outputs), len(generations)
+                    )
+                )
+                break
+            generations[idx] = replace(generations[idx], rating=raw)
+        destination_queue.put(generations)
+        torch.cuda.empty_cache()
 
 def custom_model_process(custom_model_queue, model_path, devices, config):
+    from vllm import LLM, SamplingParams
+    from vllm.lora.request import LoRARequest
     os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(str(i) for i in devices)
     # device = "cuda" if len(devices) else "cpu"
     model_kwargs = get_server_args(config)
@@ -301,6 +393,8 @@ def custom_model_process(custom_model_queue, model_path, devices, config):
 
     while True:
         task = custom_model_queue.get(block=True)
+        if task is None:
+            return
         text, destination_queue = task
         prompt = tokenizer.apply_chat_template(
             [
